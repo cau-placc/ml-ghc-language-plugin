@@ -73,9 +73,9 @@ plugin = defaultPlugin
     addNoImpPreludeOpt :: DynFlags -> IO DynFlags
     addNoImpPreludeOpt dflags
       | ImplicitPrelude `xopt` dflags =
-        return (dflags `xopt_unset` ImplicitPrelude)
+        return ((dflags `xopt_unset` ImplicitPrelude) `xopt_set` Strict)
       | otherwise =
-        return (dflags { pluginModNameOpts = opt:pluginModNameOpts dflags })
+        return ((dflags `xopt_set` Strict) { pluginModNameOpts = opt:pluginModNameOpts dflags })
 
     opt = (prelName , "NoImplicitPrelude")
     prelName = mkModuleName "Plugin.CurryPlugin.Prelude"

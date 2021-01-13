@@ -71,8 +71,6 @@ common deps
     Data.Syb
     Plugin.Dump
     Plugin.CurryPlugin.ForeignExport
-    Plugin.Effect.Tree
-    Plugin.Effect.THEval
     Plugin.Trans.Expr
     Plugin.Trans.Import
     Plugin.Trans.Constr

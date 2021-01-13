@@ -17,21 +17,18 @@ The monad type is a wrapper over the
 'Lazy' type from 'Plugin.Effect.CurryEffect'.
 -}
 module Plugin.Effect.Monad
-  ( Nondet(..), type (-->), (?), failed, share
-  , SearchMode(..)
-  , Normalform(..), modeOp, allValues, allValuesNF
+  ( Nondet(..), type (-->), share
+  , Normalform(..), runEffect
   , NondetTag(..)
   , liftNondet1, liftNondet2
   , apply1, apply2, apply2Unlifted, apply3
   , bind, rtrn, fmp, shre, seqValue)
   where
 
-import Language.Haskell.TH.Syntax
-import Control.Monad
+import Control.Monad.IO.Class
 
 import Plugin.Effect.CurryEffect
 import Plugin.Effect.Classes     (Sharing(..), Shareable(..), Normalform(..))
-import Plugin.Effect.Tree
 import Plugin.Effect.Annotation
 
 -- | The actual monad for nondeterminism used by the plugin.
@@ -70,43 +67,14 @@ instance Applicative Nondet where
 instance Monad Nondet where
   (>>=) = bind
 
-instance (Normalform Nondet a1 a2, Show a2) => Show (Nondet a1) where
-  show = show . allValuesNF
+instance MonadFail Nondet where
+  fail s = Nondet (fail s)
 
 instance Sharing Nondet where
   share = shre
 
--- | Nondeterministic failure
-failed :: Shareable Nondet a => Nondet a
-failed = Nondet mzero
-
-infixr 0 ?
-{-# INLINE (?) #-}
--- | Nondeterministic choice
-(?) :: Shareable Nondet a => Nondet (a --> a --> a)
-(?) = return $
-  \(Nondet t1) -> return $
-  \(Nondet t2) -> Nondet (t1 `mplus` t2)
-
--- | Enumeration of available search modes.
-data SearchMode = DFS -- ^ depth-first search
-                | BFS -- ^ breadth-first search
-  deriving Lift
-
--- | Function to map the search type to the function implementing it.
-modeOp :: SearchMode -> Tree a -> [a]
-modeOp DFS = dfs
-modeOp BFS = bfs
-
--- | Collect the results of a nondeterministic computation
--- as their normal form in a tree.
-allValuesNF :: Normalform Nondet a b
-            => Nondet a -> Tree b
-allValuesNF = allValues . nf
-
--- | Collect the results of a nondeterministic computation in a tree.
-allValues :: Nondet a -> Tree a
-allValues = collect . unNondet
+runEffect :: MonadIO io => Nondet a -> io a
+runEffect (Nondet a) = runLazy a
 
 infixr 0 -->
 type a --> b = (Nondet a -> Nondet b)

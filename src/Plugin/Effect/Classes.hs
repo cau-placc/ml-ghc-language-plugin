@@ -24,20 +24,9 @@ module Plugin.Effect.Classes where
 
 import GHC.Generics as Gen
 
-import Plugin.Effect.Tree
-
 -- | A class for Monads with support for explicit sharing of effects.
 class Monad s => Sharing s where
   share :: Shareable s a => s a -> s (s a)
-
--- | A class for Nondeterminism
-class Nondet n where
-  failure :: n
-  (?)     :: n -> n -> n
-
-instance Nondet (Tree a) where
-  failure = Failed
-  (?) = Choice
 
 -- | A class for deep sharing of nested effects.
 -- For types with a generic instance, it can be derived automatically.

@@ -128,7 +128,7 @@ type RationalND = RatioND Integer
 -- Pattern match failure is translated to a failed for Curry,
 -- ignoring the string.
 pE :: ShareableN a => Nondet (ListND Char --> a)
-pE = P.return (P.>>= P.const failed)
+pE = P.return (\l -> nf l P.>>= P.fail)
 
 -- | Lifted identity function
 id :: Nondet (a --> a)

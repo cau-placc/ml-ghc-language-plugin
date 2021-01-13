@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE FlexibleInstances         #-}
 {-# LANGUAGE DeriveFunctor             #-}
 {-# LANGUAGE RankNTypes                #-}
 {-|
@@ -22,9 +23,9 @@ adding a few missing instances.
 module Plugin.Effect.CurryEffect where
 
 import qualified Data.IntMap         as M
+import           Data.IORef
 import           Control.Monad
-import           Control.Monad.State ( MonadState(..), gets, modify )
-import           Control.Applicative
+import           Control.Monad.State ( MonadState(..), MonadIO(..), gets, modify )
 import           Unsafe.Coerce
 
 import Plugin.Effect.Classes
@@ -32,28 +33,21 @@ import Plugin.Effect.Classes
 -- | A Lazy implementation of a monad for nondeterminism
 -- with support for explicit sharing.
 newtype Lazy a = Lazy {
-    fromLazy :: forall n . Nondet n => (a -> Store -> n) -> Store -> n
+    fromLazy :: forall n. (a -> Store -> RefStore -> IO n)
+             -> Store -> RefStore -> IO n
   } deriving Functor
 
--- | Collect all results into a given nondeterministic
--- and monadic data structure.
-collect :: (Monad m, Nondet (m n)) => Lazy n -> (m n)
-collect a = runLazy (fmap return a)
-
 -- | Collect all results into a given nondeterministic data structure.
-runLazy :: Nondet n => Lazy n -> n
-runLazy m = fromLazy m (\a _ -> a) emptyStore
+runLazy :: MonadIO io => Lazy n -> io n
+runLazy m = liftIO $ fromLazy m (\a _ _ -> return a) emptyStore emptyRefStore
+
+liftIOInLazy :: IO a -> Lazy a
+liftIOInLazy io = Lazy (\c s r -> io >>= \v -> c v s r)
 
 instance Applicative Lazy where
   {-# INLINE pure #-}
   pure = pureL
   (<*>) = ap
-
-instance Alternative Lazy where
-  {-# INLINE empty #-}
-  empty = mzero
-  {-# INLINE (<|>) #-}
-  (<|>) = mplus
 
 instance Monad Lazy where
   {-# INLINE (>>=) #-}
@@ -74,15 +68,11 @@ andThen :: Lazy a -> (a -> Lazy b) -> Lazy b
 andThen a k = Lazy (\c s -> fromLazy a (\x -> fromLazy (k x) c) s)
 
 instance MonadFail Lazy where
-  fail _ = Lazy (\_ _ -> failure)
+  fail s = Lazy (\_ _ _ -> fail s)
 
-instance MonadPlus Lazy where
-  mzero = Lazy (\_ _ -> failure)
-  a `mplus` b = Lazy (\c s -> fromLazy a c s ? fromLazy b c s)
-
-instance MonadState Store Lazy where
-  get = Lazy (\c s -> c s s)
-  put s = Lazy (\c _ -> c () s)
+instance MonadState (Store, RefStore) Lazy where
+  get = Lazy (\c s r -> c (s, r) s r)
+  put (s, r) = Lazy (\c _ _ -> c () s r)
 
 instance Sharing Lazy where
   share a = memo (a >>= shareArgs share)
@@ -135,6 +125,36 @@ memo a =
 -- | Wrap a typed value in an untyped container.
 data Untyped = forall a. Untyped a
 
+untyped :: a -> Untyped
+untyped = Untyped
+
 -- | Extract a typed value from an untyped container.
 typed :: Untyped -> a
 typed (Untyped x) = unsafeCoerce x
+
+data RefStore = RefStore !(M.IntMap Untyped)
+
+emptyRefStore :: RefStore
+emptyRefStore = RefStore M.empty
+
+getOrCreateGlobalRefWith :: Int -> a ->  Lazy (IORef a)
+getOrCreateGlobalRefWith i v = do
+  (s, RefStore r) <- get
+  case M.lookup i r of
+    Just ref -> return (typed ref)
+    Nothing  -> do
+      ref <- liftIOInLazy $ newIORef v
+      put (s, RefStore $ M.insert i (untyped ref) r)
+      return ref
+
+writeToRef :: IORef a -> a -> Lazy a
+writeToRef ref a = do
+  liftIOInLazy $ writeIORef ref a
+  return a
+
+readFromRef :: IORef a -> Lazy a
+readFromRef ref = do
+  liftIOInLazy $ readIORef ref
+
+putStrLazy :: String -> Lazy ()
+putStrLazy = liftIOInLazy . putStr
