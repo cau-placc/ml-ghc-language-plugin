@@ -19,6 +19,7 @@ The monad type is a wrapper over the
 module Plugin.Effect.Monad
   ( Nondet(..), type (-->), share
   , Normalform(..), runEffect
+  , globalRef, ref, readRef, runIO
   , NondetTag(..)
   , liftNondet1, liftNondet2
   , apply1, apply2, apply2Unlifted, apply3
@@ -26,6 +27,7 @@ module Plugin.Effect.Monad
   where
 
 import Control.Monad.IO.Class
+import Data.IORef
 
 import Plugin.Effect.CurryEffect
 import Plugin.Effect.Classes     (Sharing(..), Shareable(..), Normalform(..))
@@ -75,6 +77,21 @@ instance Sharing Nondet where
 
 runEffect :: MonadIO io => Nondet a -> io a
 runEffect (Nondet a) = runLazy a
+
+globalRef :: Nondet (Int --> a --> IORef a)
+globalRef = return $ \(Nondet v) -> return $ \(Nondet a) -> Nondet (
+  v >>= \i -> a >>= \val -> getOrCreateGlobalRefWith i val)
+
+ref :: Nondet (a --> IORef a)
+ref = return $ \(Nondet a) -> Nondet (
+  a >>= \val -> liftIOInLazy $ newIORef val)
+
+readRef :: Nondet (IORef a --> a)
+readRef = return $ \(Nondet ioref) -> Nondet (
+  ioref >>= \r -> liftIOInLazy $ readIORef r)
+
+runIO :: IO a -> Nondet a
+runIO io = Nondet (liftIOInLazy io)
 
 infixr 0 -->
 type a --> b = (Nondet a -> Nondet b)

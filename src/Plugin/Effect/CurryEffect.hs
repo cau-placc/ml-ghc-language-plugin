@@ -137,7 +137,7 @@ data RefStore = RefStore !(M.IntMap Untyped)
 emptyRefStore :: RefStore
 emptyRefStore = RefStore M.empty
 
-getOrCreateGlobalRefWith :: Int -> a ->  Lazy (IORef a)
+getOrCreateGlobalRefWith :: Int -> a -> Lazy (IORef a)
 getOrCreateGlobalRefWith i v = do
   (s, RefStore r) <- get
   case M.lookup i r of

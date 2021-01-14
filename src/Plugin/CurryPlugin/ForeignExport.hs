@@ -17,14 +17,18 @@ module Plugin.CurryPlugin.ForeignExport
   , Num(..), Fractional(..), Real(..), Integral(..), Enum(..), Bounded(..)
   , Functor(..), Applicative(..), Alternative(..), Monad(..), MonadFail(..)
   , IsString(..)
+  , B.putStr, B.putStrLn, B.print, B.getChar, B.getLine
+  , IORef
   ) where
 
 import Data.Ratio
 import Data.String
+import Data.IORef
 
 import Control.Applicative
 
 import Plugin.Effect.Monad
-import Plugin.CurryPlugin.BuiltIn ()
+import Plugin.CurryPlugin.BuiltIn as B
+  (putStr, putStrLn, print, getChar, getLine)
 
 {-# ANN module Nondeterministic #-}

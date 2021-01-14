@@ -9,6 +9,7 @@
 {-# LANGUAGE QuantifiedConstraints  #-}
 {-# LANGUAGE UndecidableInstances   #-}
 {-# LANGUAGE ConstraintKinds        #-}
+{-# LANGUAGE Strict                 #-}
 {-# OPTIONS_GHC -Wno-orphans        #-}
 {-# OPTIONS_GHC -Wno-unused-foralls #-}
 {-|
@@ -38,6 +39,30 @@ import Plugin.Effect.Classes (Shareable(..))
 
 -- | Alias for Shareable constraint specialized to the nondeterminism monad.
 type ShareableN a = Shareable Nondet a
+
+-- * Some IO Effects
+
+-- | Output a String
+putStr :: Nondet (StringND --> ())
+putStr = P.return $ \s -> nf s P.>>= \s' ->
+  runIO (P.putStr s')
+
+
+-- | Output a String with a new line
+putStrLn :: Nondet (StringND --> ())
+putStrLn = P.return $ \s -> nf s P.>>= \s' ->
+  runIO (P.putStrLn (s' :: P.String))
+
+-- | Output a Showable value with a new line
+print :: ShowND a => Nondet (a --> ())
+print = P.return $ \a -> show P.>>= \f -> nf (f a) P.>>= \s' ->
+  runIO (P.putStrLn (s' :: P.String))
+
+getChar :: Nondet Char
+getChar = runIO P.getChar
+
+getLine :: Nondet StringND
+getLine = liftE (runIO P.getLine) 
 
 -- * Lifted list type and internal instances
 
