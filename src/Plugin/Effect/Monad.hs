@@ -78,19 +78,19 @@ instance Sharing Nondet where
 runEffect :: MonadIO io => Nondet a -> io a
 runEffect (Nondet a) = runLazy a
 
-globalRef :: Nondet (Int --> a --> IORef a)
+globalRef :: Shareable Nondet a => Nondet (Int --> a --> IORef a)
 globalRef = return $ \(Nondet v) -> return $ \(Nondet a) -> Nondet (
   v >>= \i -> a >>= \val -> getOrCreateGlobalRefWith i val)
 
-ref :: Nondet (a --> IORef a)
+ref :: Shareable Nondet a => Nondet (a --> IORef a)
 ref = return $ \(Nondet a) -> Nondet (
   a >>= \val -> liftIOInLazy $ newIORef val)
 
-readRef :: Nondet (IORef a --> a)
+readRef :: Shareable Nondet a => Nondet (IORef a --> a)
 readRef = return $ \(Nondet ioref) -> Nondet (
   ioref >>= \r -> liftIOInLazy $ readIORef r)
 
-writeRef :: Nondet (IORef a --> a --> ())
+writeRef :: Shareable Nondet a => Nondet (IORef a --> a --> ())
 writeRef = return $ \(Nondet ioref) -> return $ \(Nondet a) -> Nondet (
   ioref >>= \r -> a >>= \val -> liftIOInLazy $ writeIORef r val)
 
