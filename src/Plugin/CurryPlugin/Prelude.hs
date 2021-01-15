@@ -208,11 +208,11 @@ foldr f b (x:xs) = x `f` foldr f b xs
 
 {-# INLINE[0] build #-}
 build :: forall a. (forall b. (a -> b -> b) -> b -> b) -> [a]
-build g = g (:) []
+build ~g = g (:) []
 
 {-# INLINE[0] augment #-}
 augment :: forall a. (forall b. (a -> b -> b) -> b -> b) -> [a] -> [a]
-augment g xs = g (:) xs
+augment ~g xs = g (:) xs
 
 {-# RULES
 "fold/build"    forall k z (g :: forall b. (a -> b -> b) -> b -> b).
@@ -319,4 +319,4 @@ unzip :: [(a, b)] -> ([a], [b])
 unzip []            = ([], [])
 unzip ((a, b) : xs) = (a:as, b:bs)
   where
-    (as, bs) = unzip xs
+    ~(as, bs) = unzip xs
