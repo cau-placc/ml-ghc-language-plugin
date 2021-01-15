@@ -19,7 +19,7 @@ The monad type is a wrapper over the
 module Plugin.Effect.Monad
   ( Nondet(..), type (-->), share
   , Normalform(..), runEffect
-  , globalRef, ref, readRef, runIO
+  , globalRef, ref, readRef, writeRef, runIO
   , NondetTag(..)
   , liftNondet1, liftNondet2
   , apply1, apply2, apply2Unlifted, apply3
@@ -89,6 +89,10 @@ ref = return $ \(Nondet a) -> Nondet (
 readRef :: Nondet (IORef a --> a)
 readRef = return $ \(Nondet ioref) -> Nondet (
   ioref >>= \r -> liftIOInLazy $ readIORef r)
+
+writeRef :: Nondet (IORef a --> a --> ())
+writeRef = return $ \(Nondet ioref) -> return $ \(Nondet a) -> Nondet (
+  ioref >>= \r -> a >>= \val -> liftIOInLazy $ writeIORef r val)
 
 runIO :: IO a -> Nondet a
 runIO io = Nondet (liftIOInLazy io)

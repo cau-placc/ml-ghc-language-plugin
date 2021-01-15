@@ -18,6 +18,7 @@ module Plugin.CurryPlugin.ForeignExport
   , Functor(..), Applicative(..), Alternative(..), Monad(..), MonadFail(..)
   , IsString(..)
   , B.putStr, B.putStrLn, B.print, B.getChar, B.getLine
+  , globalRef, ref, readRef, writeRef
   , IORef
   ) where
 

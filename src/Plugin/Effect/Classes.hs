@@ -23,6 +23,7 @@ modernized with a generic implementation by Kai-Oliver Prott.
 module Plugin.Effect.Classes where
 
 import GHC.Generics as Gen
+import Data.IORef
 
 -- | A class for Monads with support for explicit sharing of effects.
 class Monad s => Sharing s where
@@ -227,4 +228,7 @@ instance (Monad m) => Shareable m Char where
   shareArgs _ = return
 
 instance (Monad m) => Shareable m (a %n -> b) where
+  shareArgs _ = return
+
+instance (Monad m) => Shareable m (IORef a) where
   shareArgs _ = return
