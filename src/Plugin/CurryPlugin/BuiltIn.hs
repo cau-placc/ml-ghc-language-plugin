@@ -33,6 +33,7 @@ import           Prelude                     ( ($), Int, Integer, Char
 import qualified GHC.Real               as P
 import           Unsafe.Coerce
 import           GHC.Types (RuntimeRep)
+import           Data.IORef
 
 import Plugin.Effect.Monad
 import Plugin.Effect.Classes (Shareable(..))
@@ -335,6 +336,10 @@ instance EqND Double where
   (/=) = liftNondet2 (P./=)
 
 instance EqND Char where
+  (==) = liftNondet2 (P.==)
+  (/=) = liftNondet2 (P./=)
+
+instance EqND (IORef a) where
   (==) = liftNondet2 (P.==)
   (/=) = liftNondet2 (P./=)
 
