@@ -34,6 +34,7 @@ import qualified GHC.Real               as P
 import           Unsafe.Coerce
 import           GHC.Types (RuntimeRep)
 import           Data.IORef
+import           Data.Typeable
 
 import Plugin.Effect.Monad
 import Plugin.Effect.Classes (Shareable(..))
@@ -64,6 +65,21 @@ getChar = runIO P.getChar
 
 getLine :: Nondet StringND
 getLine = liftE (runIO P.getLine)
+
+raise :: (ShowND a, Typeable a, Shareable Nondet a, Shareable Nondet b)
+      => Nondet (Nondet a -> Nondet b)
+raise = P.return $ \a -> show P.>>= \f -> nf (f a) P.>>= \s ->
+  Nondet (throwLazy (unNondet a) s)
+
+handle :: (Typeable b, Shareable Nondet a, Shareable Nondet b)
+       => Nondet (Nondet a -> Nondet (Nondet (Nondet b -> Nondet a) -> Nondet a))
+handle = P.return $ \(Nondet act) -> P.return $ \(Nondet cse) ->
+  Nondet $ handleLazy act (P.fmap (\cse' -> unNondet P.. cse' P.. Nondet) cse)
+
+orElse :: (Typeable a, Shareable Nondet a)
+       => Nondet (Nondet a -> Nondet (Nondet a -> Nondet a))
+orElse = P.return $ \(Nondet a1) -> P.return $ \(Nondet a2) ->
+  Nondet $ orElseLazy a1 a2
 
 -- * Lifted list type and internal instances
 

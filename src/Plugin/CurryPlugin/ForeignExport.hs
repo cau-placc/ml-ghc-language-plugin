@@ -18,6 +18,7 @@ module Plugin.CurryPlugin.ForeignExport
   , Functor(..), Applicative(..), Alternative(..), Monad(..), MonadFail(..)
   , IsString(..)
   , B.putStr, B.putStrLn, B.print, B.getChar, B.getLine
+  , B.handle, B.raise, B.orElse
   , globalRef, ref, readRef, writeRef
   , IORef
   ) where
@@ -30,6 +31,7 @@ import Control.Applicative
 
 import Plugin.Effect.Monad
 import Plugin.CurryPlugin.BuiltIn as B
-  (putStr, putStrLn, print, getChar, getLine)
+  ( putStr, putStrLn, print, getChar, getLine
+  , handle, raise, orElse )
 
 {-# ANN module Nondeterministic #-}

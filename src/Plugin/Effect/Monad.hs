@@ -20,6 +20,7 @@ module Plugin.Effect.Monad
   ( Nondet(..), type (-->), share
   , Normalform(..), runEffect
   , globalRef, ref, readRef, writeRef, runIO
+  , handleLazy, throwLazy, orElseLazy
   , NondetTag(..)
   , liftNondet1, liftNondet2
   , apply1, apply2, apply2Unlifted, apply3

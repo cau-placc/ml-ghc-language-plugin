@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleInstances         #-}
 {-# LANGUAGE DeriveFunctor             #-}
 {-# LANGUAGE RankNTypes                #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
 {-|
 Module      : Plugin.Effect.CurryEffect
 Description : Implementation of nondeterminism with sharing
@@ -24,6 +25,8 @@ module Plugin.Effect.CurryEffect where
 
 import qualified Data.IntMap         as M
 import           Data.IORef
+import           Data.Typeable
+import           Control.Exception
 import           Control.Monad
 import           Control.Monad.State ( MonadState(..), MonadIO(..), gets, modify )
 import           Unsafe.Coerce
@@ -43,6 +46,40 @@ runLazy m = liftIO $ fromLazy m (\a _ _ -> return a) emptyStore emptyRefStore
 
 liftIOInLazy :: IO a -> Lazy a
 liftIOInLazy io = Lazy (\c s r -> io >>= \v -> c v s r)
+
+runLazyWith :: MonadIO io
+            => Lazy n -> Store -> RefStore -> io (n, Store, RefStore)
+runLazyWith m s r = liftIO $ fromLazy m (\a b c -> return (a, b, c)) s r
+
+data UserException = forall a. Typeable a => UEX a String Store RefStore
+
+instance Show UserException where
+  show (UEX _ disp _ _) = disp
+
+instance Exception UserException where
+
+handleLazy :: forall a b. Typeable b
+           => Lazy a -> Lazy (Lazy b -> Lazy a) -> Lazy a
+handleLazy l1 l2 = Lazy $ \c s r -> do
+  (a, s', r') <- runLazyWith l1 s r `catch` handleUE
+  c a s' r'
+  where
+    handleUE :: UserException -> IO (a, Store, RefStore)
+    handleUE (UEX b d s r) = case cast b of
+      Just b' -> runLazyWith l2 s r >>= \(f, s', r') ->
+                 runLazyWith (f (return b')) s' r'
+      Nothing -> throw (UEX b d s r)
+
+orElseLazy :: Lazy a -> Lazy a -> Lazy a
+orElseLazy l1 l2 = Lazy $ \c s r -> do
+  (a, s', r') <- runLazyWith l1 s r `catch` \(UEX _ _ sx rx) ->
+    runLazyWith l2 sx rx
+  c a s' r'
+
+throwLazy :: Typeable a => Lazy a -> String -> Lazy b
+throwLazy l disp = Lazy $ \_ s r -> do
+  (v, s', r') <- runLazyWith l s r
+  throw (UEX v disp s' r')
 
 instance Applicative Lazy where
   {-# INLINE pure #-}
