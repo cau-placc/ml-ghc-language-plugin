@@ -8,6 +8,8 @@
 {-# LANGUAGE DefaultSignatures      #-}
 {-# LANGUAGE LambdaCase             #-}
 {-# LANGUAGE LinearTypes            #-}
+{-# LANGUAGE ConstraintKinds        #-}
+{-# LANGUAGE TypeFamilies           #-}
 {-|
 Module      : Plugin.Effect.Classes
 Description : Type classes used for the effect implementation
@@ -24,10 +26,13 @@ module Plugin.Effect.Classes where
 
 import GHC.Generics as Gen
 import Data.IORef
+import Data.Kind
 
 -- | A class for Monads with support for explicit sharing of effects.
 class Monad s => Sharing s where
-  share :: Shareable s a => s a -> s (s a)
+  type ShareConstraints s a :: Constraint
+  type ShareConstraints s a = ()
+  share :: ShareConstraints s a => s a -> s (s a)
 
 -- | A class for deep sharing of nested effects.
 -- For types with a generic instance, it can be derived automatically.
