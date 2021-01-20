@@ -4,10 +4,10 @@
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE UndecidableInstances   #-}
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 module MultiParamFlexible where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 class ListLike e l | l -> e where
   cons :: e -> l -> l

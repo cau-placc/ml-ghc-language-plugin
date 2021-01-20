@@ -1,9 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TupleSections     #-}
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 module TupleSections where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 test1 :: a -> (Int, a)
 test1 = (0,)

@@ -3,10 +3,10 @@
 {-# LANGUAGE TypeSynonymInstances           #-}
 {-# LANGUAGE FlexibleInstances              #-}
 {-# LANGUAGE DeriveFunctor                  #-}
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 module InstanceExport where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 newtype Id a = Id a
 

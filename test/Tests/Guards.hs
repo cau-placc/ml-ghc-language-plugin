@@ -1,8 +1,8 @@
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 {-# LANGUAGE NoImplicitPrelude              #-}
 module Tests.Guards where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 take :: Int -> [a] -> [a]
 take n xs

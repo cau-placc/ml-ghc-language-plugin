@@ -125,7 +125,7 @@ test-suite tests
     Plugin.Effect.Monad
     Plugin.Effect.Classes
     Plugin.Effect.Annotation
-    Plugin.Effect.CurryEffect
+    Plugin.Effect.MLEffect
   build-depends:
     curry-ghc-plugin,
     process   -any,

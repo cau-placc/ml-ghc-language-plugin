@@ -1,8 +1,8 @@
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 {-# LANGUAGE NoImplicitPrelude              #-}
 module Export where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 -- We can import these definitions in Import.hs.
 

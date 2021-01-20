@@ -1,8 +1,8 @@
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 {-# LANGUAGE NoImplicitPrelude              #-}
 module Data where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 -- Datatypes can be translated ...
 data MyMaybe a = MyJust a
@@ -11,4 +11,4 @@ data MyMaybe a = MyJust a
 -- ... and newtypes as well.
 newtype Wrap a = Proxy a
 
-data Test a 
+data Test a

@@ -1,10 +1,10 @@
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 {-# LANGUAGE NoImplicitPrelude              #-}
 {-# LANGUAGE RecordWildCards                #-}
 {-# LANGUAGE NamedFieldPuns                 #-}
 module Record where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 -- Record syntax is fully supported:
 

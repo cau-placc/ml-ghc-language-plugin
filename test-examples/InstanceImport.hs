@@ -1,9 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 module InstanceImport where
 
 import InstanceExport
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 data Foo = Foo
   deriving Show

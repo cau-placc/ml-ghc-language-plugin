@@ -1,8 +1,8 @@
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 {-# LANGUAGE NoImplicitPrelude              #-}
 module Tests.LetPattern where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 letPattern :: Int
 letPattern = let (Nothing, x) = (failed, 1) in x

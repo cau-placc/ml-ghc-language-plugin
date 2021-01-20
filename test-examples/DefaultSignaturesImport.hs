@@ -1,9 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude              #-}
 {-# LANGUAGE DefaultSignatures              #-}
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 module DefaultSignaturesImport where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 import DefaultSignaturesExport
 

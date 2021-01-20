@@ -1,10 +1,10 @@
 {-# LANGUAGE KindSignatures                 #-}
 {-# LANGUAGE StandaloneKindSignatures       #-}
 {-# LANGUAGE StarIsType                     #-}
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 module KindSignatures where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 type X :: *
 data X = X

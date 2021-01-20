@@ -1,9 +1,9 @@
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 {-# LANGUAGE NoImplicitPrelude              #-}
 {-# LANGUAGE BangPatterns                   #-}
 module Tests.Bang (testBang, testNoBang) where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 test :: a -> ()
 test !_ = ()

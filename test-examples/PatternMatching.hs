@@ -1,9 +1,9 @@
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin   #-}
 {-# LANGUAGE NoImplicitPrelude              #-}
 {-# LANGUAGE LambdaCase                     #-}
 module PatternMatching where
 
-import Plugin.CurryPlugin.Prelude
+import Plugin.SMLPlugin.Prelude
 
 -- Pattern matching is also supported by the plugin.
 
