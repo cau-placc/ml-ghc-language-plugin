@@ -51,8 +51,8 @@ fmp :: (a -> b) -> Nondet a -> Nondet b
 fmp f (Nondet a) = Nondet (fmap f a)
 
 {-# INLINE[0] shre #-}
-shre :: Shareable Nondet a => Nondet a -> Nondet (Nondet a)
-shre m = Nondet $ fmap Nondet $ memo (unNondet (m >>= shareArgs share))
+shre :: Nondet a -> Nondet (Nondet a)
+shre m = m >>= return . return
 
 {-# INLINE seqValue #-}
 seqValue :: Nondet a -> Nondet b -> Nondet b
