@@ -113,10 +113,10 @@ test-suite tests
   test-module:    Tests
   other-modules:
     SemanticTests
-    Tests.Guards
-    Tests.UnknownNat
-    Tests.LetPattern
-    Tests.Bang
+    -- Tests.Guards
+    -- Tests.UnknownNat
+    -- Tests.LetPattern
+    -- Tests.Bang
 
     Plugin.SMLPlugin
     Plugin.SMLPlugin.BuiltIn
