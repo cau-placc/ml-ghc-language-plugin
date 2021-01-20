@@ -1,12 +1,7 @@
-{-# OPTIONS_GHC -fplugin Plugin.CurryPlugin #-}
-{-# LANGUAGE NoImplicitPrelude              #-}
+{-# OPTIONS_GHC -fplugin Plugin.SMLPlugin #-}
 module Example where
 
-import Plugin.CurryPlugin.Prelude
+data Test = Test Int
 
-permutations :: [a] -> [a]
-permutations []     = []
-permutations (x:xs) = insert x (permutations xs)
-  where
-    insert e []     = [e]
-    insert e (y:ys) = (e:y:ys) ? (y : insert e ys)
+testShare :: Test
+testShare = Test (let _ = print "Hello" in 5 :: Int)

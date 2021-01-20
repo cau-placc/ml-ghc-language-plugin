@@ -46,7 +46,7 @@ type TyConMap = (HscEnv, TcRef (UniqFM TyCon TyCon, -- Old -> New
 
 -- | Get the 'Nondet' monad type constructor.
 getMonadTycon :: TcM TyCon
-getMonadTycon = getTyCon "Plugin.Effect.Monad" "Nondet"
+getMonadTycon = getTyCon "Plugin.Effect.Monad" "SML"
 
 
 -- | Get the 'Shareable' class type constructor.
@@ -660,7 +660,7 @@ mkEvWrapSimilar :: HsWrapper -> [CoreExpr] -> [(Type, Var)] -> HsWrapper
 mkEvWrapSimilar = go []
   where
     go _      _                 []     _             = WpHole
-    go ws     (WpTyApp _  )     (v:vs) []            = 
+    go ws     (WpTyApp _  )     (v:vs) []            =
                            WpEvApp (EvExpr v)        <.> gos ws vs []
     go ws     (WpTyApp ty1)     (v:vs) ((ty2, c):cs)
       | ty1 `eqType` ty2 = WpEvApp (EvExpr (evId c)) <.> gos ws vs cs

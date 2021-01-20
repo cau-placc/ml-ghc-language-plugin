@@ -14,15 +14,15 @@ Maintainer  : kai.prott@hotmail.de
 This module contains the actual monad used by the plugin and a few
 convenicence functions.
 The monad type is a wrapper over the
-'Lazy' type from 'Plugin.Effect.CurryEffect'.
+'Strict' type from 'Plugin.Effect.MLEffect'.
 -}
 module Plugin.Effect.Monad
-  ( Nondet(..), type (-->), share
+  ( SML(..), type (-->), share
   , Normalform(..), runEffect
   , globalRef, ref, readRef, writeRef, runIO
-  , handleLazy, throwLazy, orElseLazy
-  , NondetTag(..)
-  , liftNondet1, liftNondet2
+  , handleStrict, throwStrict, orElseStrict
+  , SMLTag(..)
+  , liftSML1, liftSML2
   , apply1, apply2, apply2Unlifted, apply3
   , bind, rtrn, fmp, shre, seqValue)
   where
@@ -30,32 +30,32 @@ module Plugin.Effect.Monad
 import Control.Monad.IO.Class
 import Data.IORef
 
-import Plugin.Effect.CurryEffect
+import Plugin.Effect.MLEffect
 import Plugin.Effect.Classes     (Sharing(..), Shareable(..), Normalform(..))
 import Plugin.Effect.Annotation
 
 -- | The actual monad for nondeterminism used by the plugin.
-data Nondet a = Nondet { unNondet :: Lazy a }
+data SML a = SML { unSML :: Strict a }
   deriving Functor
 
 {-# INLINE[0] bind #-}
-bind :: Nondet a -> (a -> Nondet b) -> Nondet b
-bind (Nondet a) f = Nondet (a >>= unNondet . f)
+bind :: SML a -> (a -> SML b) -> SML b
+bind (SML a) f = SML (a >>= unSML . f)
 
 {-# INLINE[0] rtrn #-}
-rtrn :: a -> Nondet a
-rtrn a = Nondet (pureL a)
+rtrn :: a -> SML a
+rtrn a = SML (pureS a)
 
 {-# INLINE[0] fmp #-}
-fmp :: (a -> b) -> Nondet a -> Nondet b
-fmp f (Nondet a) = Nondet (fmap f a)
+fmp :: (a -> b) -> SML a -> SML b
+fmp f (SML a) = SML (fmap f a)
 
 {-# INLINE[0] shre #-}
-shre :: Nondet a -> Nondet (Nondet a)
+shre :: SML a -> SML (SML a)
 shre m = m >>= return . return
 
 {-# INLINE seqValue #-}
-seqValue :: Nondet a -> Nondet b -> Nondet b
+seqValue :: SML a -> SML b -> SML b
 seqValue a b = a >>= \a' -> a' `seq` b
 
 {-# RULES
@@ -63,68 +63,68 @@ seqValue a b = a >>= \a' -> a' `seq` b
   #-}
   -- "bind/rtrn'let"   forall e x. let b = e in rtrn x = rtrn (let b = e in x)
 
-instance Applicative Nondet where
+instance Applicative SML where
   pure = rtrn
-  Nondet f <*> Nondet a = Nondet (f <*> a)
+  SML f <*> SML a = SML (f <*> a)
 
-instance Monad Nondet where
+instance Monad SML where
   (>>=) = bind
 
-instance MonadFail Nondet where
-  fail s = Nondet (fail s)
+instance MonadFail SML where
+  fail s = SML (fail s)
 
-instance Sharing Nondet where
+instance Sharing SML where
   share = shre
 
-runEffect :: MonadIO io => Nondet a -> io a
-runEffect (Nondet a) = runLazy a
+runEffect :: MonadIO io => SML a -> io a
+runEffect (SML a) = runStrict a
 
-globalRef :: Shareable Nondet a => Nondet (Int --> a --> IORef a)
-globalRef = return $ \(Nondet v) -> return $ \(Nondet a) -> Nondet (
+globalRef :: Shareable SML a => SML (Int --> a --> IORef a)
+globalRef = return $ \(SML v) -> return $ \(SML a) -> SML (
   v >>= \i -> a >>= \val -> getOrCreateGlobalRefWith i val)
 
-ref :: Shareable Nondet a => Nondet (a --> IORef a)
-ref = return $ \(Nondet a) -> Nondet (
-  a >>= \val -> liftIOInLazy $ newIORef val)
+ref :: Shareable SML a => SML (a --> IORef a)
+ref = return $ \(SML a) -> SML (
+  a >>= \val -> liftIOInStrict $ newIORef val)
 
-readRef :: Shareable Nondet a => Nondet (IORef a --> a)
-readRef = return $ \(Nondet ioref) -> Nondet (
-  ioref >>= \r -> liftIOInLazy $ readIORef r)
+readRef :: Shareable SML a => SML (IORef a --> a)
+readRef = return $ \(SML ioref) -> SML (
+  ioref >>= \r -> liftIOInStrict $ readIORef r)
 
-writeRef :: Shareable Nondet a => Nondet (IORef a --> a --> ())
-writeRef = return $ \(Nondet ioref) -> return $ \(Nondet a) -> Nondet (
-  ioref >>= \r -> a >>= \val -> liftIOInLazy $ writeIORef r val)
+writeRef :: Shareable SML a => SML (IORef a --> a --> ())
+writeRef = return $ \(SML ioref) -> return $ \(SML a) -> SML (
+  ioref >>= \r -> a >>= \val -> liftIOInStrict $ writeIORef r val)
 
-runIO :: IO a -> Nondet a
-runIO io = Nondet (liftIOInLazy io)
+runIO :: IO a -> SML a
+runIO io = SML (liftIOInStrict io)
 
 infixr 0 -->
-type a --> b = (Nondet a -> Nondet b)
+type a --> b = (SML a -> SML b)
 
 -- | Lift a unary function with the lifting scheme of the plugin.
-liftNondet1 :: (a -> b) -> Nondet (a --> b)
-liftNondet1 f = return (\a -> a >>= \a' -> return (f a'))
+liftSML1 :: (a -> b) -> SML (a --> b)
+liftSML1 f = return (\a -> a >>= \a' -> return (f a'))
 
 -- | Lift a 2-ary function with the lifting scheme of the plugin.
-liftNondet2 :: (a -> b -> c) -> Nondet (a --> b --> c)
-liftNondet2 f = return (\a  -> return (\b  ->
+liftSML2 :: (a -> b -> c) -> SML (a --> b --> c)
+liftSML2 f = return (\a  -> return (\b  ->
                 a >>=   \a' -> b >>=   \b' -> return (f a' b')))
 
 -- | Apply a lifted unary function to its lifted argument.
-apply1 :: Nondet (a --> b) -> Nondet a -> Nondet b
+apply1 :: SML (a --> b) -> SML a -> SML b
 apply1 f a = f >>= ($ a)
 
 -- | Apply a lifted 2-ary function to its lifted arguments.
-apply2 :: Nondet (a --> b --> c) -> Nondet a -> Nondet b -> Nondet c
+apply2 :: SML (a --> b --> c) -> SML a -> SML b -> SML c
 apply2 f a b = apply1 f a >>= ($ b)
 
 -- | Apply a lifted 2-ary function to its arguments, where just the
 -- first argument has to be lifted.
-apply2Unlifted :: Nondet (a --> b --> c)
-               -> Nondet a -> b -> Nondet c
+apply2Unlifted :: SML (a --> b --> c)
+               -> SML a -> b -> SML c
 apply2Unlifted f a b = apply1 f a >>= ($ return b)
 
 -- | Apply a lifted 3-ary function to its lifted arguments.
-apply3 :: Nondet (a --> b --> c --> d)
-       -> Nondet a -> Nondet b -> Nondet c -> Nondet d
+apply3 :: SML (a --> b --> c --> d)
+       -> SML a -> SML b -> SML c -> SML d
 apply3 f a b c = apply2 f a b >>= ($ c)

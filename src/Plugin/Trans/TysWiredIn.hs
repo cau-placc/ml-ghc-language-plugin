@@ -120,4 +120,4 @@ maxTupleArity = 2
 
 -- | Name of the module that contains all built-in plugin definitions
 builtInModule :: String
-builtInModule = "Plugin.CurryPlugin.BuiltIn"
+builtInModule = "Plugin.SMLPlugin.BuiltIn"

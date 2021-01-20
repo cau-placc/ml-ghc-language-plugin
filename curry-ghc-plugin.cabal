@@ -70,7 +70,7 @@ common deps
   other-modules:
     Data.Syb
     Plugin.Dump
-    Plugin.CurryPlugin.ForeignExport
+    Plugin.SMLPlugin.ForeignExport
     Plugin.Trans.Expr
     Plugin.Trans.Import
     Plugin.Trans.Constr
@@ -97,14 +97,14 @@ common deps
 library
   import: deps
   exposed-modules:
-    Plugin.CurryPlugin
-    Plugin.CurryPlugin.BuiltIn
-    Plugin.CurryPlugin.Encapsulation
-    Plugin.CurryPlugin.Prelude
+    Plugin.SMLPlugin
+    Plugin.SMLPlugin.BuiltIn
+    Plugin.SMLPlugin.Encapsulation
+    Plugin.SMLPlugin.Prelude
     Plugin.Effect.Monad
     Plugin.Effect.Classes
     Plugin.Effect.Annotation
-    Plugin.Effect.CurryEffect
+    Plugin.Effect.MLEffect
 
 test-suite tests
   import:         deps
@@ -118,10 +118,10 @@ test-suite tests
     Tests.LetPattern
     Tests.Bang
 
-    Plugin.CurryPlugin
-    Plugin.CurryPlugin.BuiltIn
-    Plugin.CurryPlugin.Encapsulation
-    Plugin.CurryPlugin.Prelude
+    Plugin.SMLPlugin
+    Plugin.SMLPlugin.BuiltIn
+    Plugin.SMLPlugin.Encapsulation
+    Plugin.SMLPlugin.Prelude
     Plugin.Effect.Monad
     Plugin.Effect.Classes
     Plugin.Effect.Annotation

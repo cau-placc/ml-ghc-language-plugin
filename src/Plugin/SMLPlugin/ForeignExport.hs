@@ -10,7 +10,7 @@ our Plugin. Note that we re-export Haskell's original defintions from the
 Prelude of Base packages, while the built-In module is just added so that it
 is loaded in every plugin-compiled module.
 -}
-module Plugin.CurryPlugin.ForeignExport
+module Plugin.SMLPlugin.ForeignExport
   ( Bool(..), Int, Integer, Char, String, Ordering(..)
   , Ratio, Rational, Float, Double
   , Show(..), Eq(..), Ord(..)
@@ -30,8 +30,8 @@ import Data.IORef
 import Control.Applicative
 
 import Plugin.Effect.Monad
-import Plugin.CurryPlugin.BuiltIn as B
+import Plugin.SMLPlugin.BuiltIn as B
   ( putStr, putStrLn, print, getChar, getLine
   , handle, raise, orElse )
 
-{-# ANN module Nondeterministic #-}
+{-# ANN module StandardML #-}

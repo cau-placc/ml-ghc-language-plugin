@@ -1,0 +1,147 @@
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE DeriveFunctor             #-}
+{-# LANGUAGE RankNTypes                #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE TypeFamilies              #-}
+{-|
+Module      : Plugin.Effect.CurryEffect
+Description : Implementation of nondeterminism with sharing
+Copyright   : (c) Kai-Oliver Prott (2020)
+Maintainer  : kai.prott@hotmail.de
+
+This module contains defintions for a strict Standard ML-like effect monad
+with support for explicit sharing of computations in call-by-value.
+-}
+module Plugin.Effect.MLEffect where
+
+import qualified Data.IntMap         as M
+import           Data.IORef
+import           Data.Typeable
+import           Control.Exception
+import           Control.Monad
+import           Control.Monad.State ( MonadState(..), MonadIO(..) )
+import           Unsafe.Coerce
+
+import Plugin.Effect.Classes
+
+-- | A Strict implementation of a monad for nondeterminism
+-- with support for explicit sharing.
+newtype Strict a = Strict {
+    fromStrict :: forall n. (a -> RefStore -> IO n)
+               -> RefStore -> IO n
+  } deriving Functor
+
+-- | Collect all results into a given nondeterministic data structure.
+runStrict :: MonadIO io => Strict n -> io n
+runStrict m = liftIO $ fromStrict m (\a _ -> return a) emptyRefStore
+
+liftIOInStrict :: IO a -> Strict a
+liftIOInStrict io = Strict (\c r -> io >>= \v -> c v r)
+
+runStrictWith :: MonadIO io
+              => Strict n -> RefStore -> io (n, RefStore)
+runStrictWith m r = liftIO $ fromStrict m (\a c -> return (a, c)) r
+
+data UserException = forall a. Typeable a => UEX a String RefStore
+
+instance Show UserException where
+  show (UEX _ disp _) = disp
+
+instance Exception UserException where
+
+handleStrict :: forall a b. Typeable b
+             => Strict a -> Strict (Strict b -> Strict a) -> Strict a
+handleStrict l1 l2 = Strict $ \c r -> do
+  (a, r') <- runStrictWith l1 r `catch` handleUE
+  c a r'
+  where
+    handleUE :: UserException -> IO (a, RefStore)
+    handleUE (UEX b d r) = case cast b of
+      Just b' -> runStrictWith l2 r >>= \(f, r') ->
+                 runStrictWith (f (return b')) r'
+      Nothing -> throw (UEX b d r)
+
+orElseStrict :: Strict a -> Strict a -> Strict a
+orElseStrict l1 l2 = Strict $ \c r -> do
+  (a, r') <- runStrictWith l1 r `catch` \(UEX _ _ rx) ->
+    runStrictWith l2 rx
+  c a r'
+
+throwStrict :: Typeable a => Strict a -> String -> Strict b
+throwStrict l disp = Strict $ \_ r -> do
+  (v, r') <- runStrictWith l r
+  throw (UEX v disp r')
+
+instance Applicative Strict where
+  {-# INLINE pure #-}
+  pure = pureS
+  (<*>) = ap
+
+instance Monad Strict where
+  {-# INLINE (>>=) #-}
+  (>>=) = andThen
+
+{-# RULES
+"pure/bind" forall f x. andThen (pureS x) f = f x
+  #-}
+
+{-# INLINE[0] pureS #-}
+-- | Inlineable implementation of 'pure' for 'Strict'
+pureS :: a -> Strict a
+pureS x = Strict (\c -> c x)
+
+{-# INLINE[0] andThen #-}
+-- | Inlineable implementation of '(>>=)' for 'Strict'
+andThen :: Strict a -> (a -> Strict b) -> Strict b
+andThen a k = Strict (\c -> fromStrict a (\x -> fromStrict (k x) c))
+
+instance MonadFail Strict where
+  fail s = Strict (\_ _ -> fail s)
+
+instance MonadState RefStore Strict where
+  get = Strict (\c r -> c r r)
+  put r = Strict (\c _ -> c () r)
+
+instance Sharing Strict where
+  share a = a >>= return . return
+
+-- | Wrap a typed value in an untyped container.
+data Untyped = forall a. Untyped a
+
+-- | Wrap a typed value in an untyped container.
+untyped :: a -> Untyped
+untyped = Untyped
+
+-- | Extract a typed value from an untyped container.
+typed :: Untyped -> a
+typed (Untyped x) = unsafeCoerce x
+
+data RefStore = RefStore !(M.IntMap Untyped)
+
+emptyRefStore :: RefStore
+emptyRefStore = RefStore M.empty
+
+getOrCreateGlobalRefWith :: Int -> a -> Strict (IORef a)
+getOrCreateGlobalRefWith i v = do
+  RefStore r <- get
+  case M.lookup i r of
+    Just ref -> return (typed ref)
+    Nothing  -> do
+      ref <- liftIOInStrict $ newIORef v
+      put (RefStore $ M.insert i (untyped ref) r)
+      return ref
+
+writeToRef :: IORef a -> a -> Strict a
+writeToRef ref a = do
+  liftIOInStrict $ writeIORef ref a
+  return a
+
+readFromRef :: IORef a -> Strict a
+readFromRef ref = do
+  liftIOInStrict $ readIORef ref
+
+putStrStrict :: String -> Strict ()
+putStrStrict = liftIOInStrict . putStr

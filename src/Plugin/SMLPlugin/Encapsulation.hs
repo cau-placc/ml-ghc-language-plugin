@@ -11,13 +11,13 @@ Maintainer  : kai.prott@hotmail.de
 This module contains functions to encapsulate the nondeterminism of
 plugin-compiled functions.
 -}
-module Plugin.CurryPlugin.Encapsulation
-  ( Nondet
+module Plugin.SMLPlugin.Encapsulation
+  ( SML
   , runSML
   ) where
 
 import Control.Monad.IO.Class
 import Plugin.Effect.Monad
 
-runSML :: (Normalform Nondet a b, MonadIO io) => Nondet a -> io b
+runSML :: (Normalform SML a b, MonadIO io) => SML a -> io b
 runSML n = runEffect (nf n)

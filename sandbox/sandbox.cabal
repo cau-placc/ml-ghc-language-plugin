@@ -21,7 +21,6 @@ library
   import: deps
   exposed-modules:
     Example
-    Example2
     Main
 --
 -- executable sandbox

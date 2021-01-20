@@ -68,7 +68,7 @@ isDataKind (Module u n, _) =
 -- | Get any 'NondetTag' module annotations for a given module
 -- and the source span of the import declaration, if available.
 getAnnFor :: Unit -> HomePackageTable -> AnnEnv -> Module -> [ImportedBy]
-          -> (Module, [NondetTag], Maybe SrcSpan)
+          -> (Module, [SMLTag], Maybe SrcSpan)
 getAnnFor unit modinfo annsExt mdl imps = (mdl, ann, imp)
   where
     Just info = lookupHpt modinfo (moduleName mdl)
@@ -89,7 +89,7 @@ importSpanMaybe ImportedBySystem   = Nothing
 
 -- | Classify a module import as ok or failed.
 -- If it is classified as failed, then the span of the import is added as well.
-classifyWithLoadResult :: Module -> [NondetTag] -> Maybe SrcSpan
+classifyWithLoadResult :: Module -> [SMLTag] -> Maybe SrcSpan
                        -> IfaceLoadResult
 classifyWithLoadResult mdl anns mspan =
   if notNull anns

@@ -10,7 +10,7 @@ Maintainer  : kai.prott@hotmail.de
 This module contains a GHC plugin that turns GHC into a "compiler" for
 the functional-logic programming language Curry.
 -}
-module Plugin.CurryPlugin (plugin) where
+module Plugin.SMLPlugin (plugin) where
 
 import Data.List
 import Data.Syb
@@ -78,7 +78,7 @@ plugin = defaultPlugin
         return ((dflags `xopt_set` Strict) { pluginModNameOpts = opt:pluginModNameOpts dflags })
 
     opt = (prelName , "NoImplicitPrelude")
-    prelName = mkModuleName "Plugin.CurryPlugin.Prelude"
+    prelName = mkModuleName "Plugin.SMLPlugin.Prelude"
 
     addPreludeImport :: HsParsedModule -> Hsc HsParsedModule
     addPreludeImport p@(HsParsedModule (L l
@@ -189,7 +189,7 @@ liftMonadPlugin mdopts env = setGblEnv env $ do
 
   -- generate module annotation
   let a = Annotation (ModuleTarget (tcg_semantic_mod env))
-            (toSerialized serializeWithData Nondeterministic)
+            (toSerialized serializeWithData StandardML)
 
   -- update environment and remove tc plugins temporarily
   let aenv = tcg_ann_env env
