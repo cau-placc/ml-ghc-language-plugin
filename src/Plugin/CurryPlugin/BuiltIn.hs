@@ -56,7 +56,7 @@ putStrLn = P.return $ \s -> nf s P.>>= \s' ->
   runIO (P.putStrLn (s' :: P.String))
 
 -- | Output a Showable value with a new line
-print :: ShowND a => Nondet (a --> ())
+print :: (ShowND a, ShareableN a) => Nondet (a --> ())
 print = P.return $ \a -> show P.>>= \f -> nf (f a) P.>>= \s' ->
   runIO (P.putStrLn (s' :: P.String))
 
