@@ -17,12 +17,12 @@ with support for explicit sharing of computations in call-by-value.
 -}
 module Plugin.Effect.MLEffect where
 
-import qualified Data.IntMap         as M
+import qualified Data.Map.Strict as M
 import           Data.IORef
 import           Data.Typeable
 import           Control.Exception
 import           Control.Monad
-import           Control.Monad.State ( MonadState(..), MonadIO(..) )
+import           Control.Monad.State ( MonadState(..), MonadIO(..), gets, modify )
 import           Unsafe.Coerce
 
 import Plugin.Effect.Classes
@@ -30,22 +30,22 @@ import Plugin.Effect.Classes
 -- | A Strict implementation of a monad for nondeterminism
 -- with support for explicit sharing.
 newtype Strict a = Strict {
-    fromStrict :: forall n. (a -> RefStore -> IO n)
-               -> RefStore -> IO n
+    fromStrict :: forall n. (a -> TopStore -> IO n)
+               -> TopStore -> IO n
   } deriving Functor
 
 -- | Collect all results into a given nondeterministic data structure.
 runStrict :: MonadIO io => Strict n -> io n
-runStrict m = liftIO $ fromStrict m (\a _ -> return a) emptyRefStore
+runStrict m = liftIO $ fromStrict m (\a _ -> return a) emptyTopStore
 
 liftIOInStrict :: IO a -> Strict a
 liftIOInStrict io = Strict (\c r -> io >>= \v -> c v r)
 
 runStrictWith :: MonadIO io
-              => Strict n -> RefStore -> io (n, RefStore)
+              => Strict n -> TopStore -> io (n, TopStore)
 runStrictWith m r = liftIO $ fromStrict m (\a c -> return (a, c)) r
 
-data UserException = forall a. Typeable a => UEX a String RefStore
+data UserException = forall a. Typeable a => UEX a String TopStore
 
 instance Show UserException where
   show (UEX _ disp _) = disp
@@ -58,7 +58,7 @@ handleStrict l1 l2 = Strict $ \c r -> do
   (a, r') <- runStrictWith l1 r `catch` handleUE
   c a r'
   where
-    handleUE :: UserException -> IO (a, RefStore)
+    handleUE :: UserException -> IO (a, TopStore)
     handleUE (UEX b d r) = case cast b of
       Just b' -> runStrictWith l2 r >>= \(f, r') ->
                  runStrictWith (f (return b')) r'
@@ -101,12 +101,13 @@ andThen a k = Strict (\c -> fromStrict a (\x -> fromStrict (k x) c))
 instance MonadFail Strict where
   fail s = Strict (\_ _ -> fail s)
 
-instance MonadState RefStore Strict where
+instance MonadState TopStore Strict where
   get = Strict (\c r -> c r r)
   put r = Strict (\c _ -> c () r)
 
 instance Sharing Strict where
   share a = a >>= return . return
+  shareTopLevel = readOrExecuteTop
 
 -- | Wrap a typed value in an untyped container.
 data Untyped = forall a. Untyped a
@@ -119,20 +120,22 @@ untyped = Untyped
 typed :: Untyped -> a
 typed (Untyped x) = unsafeCoerce x
 
-data RefStore = RefStore !(M.IntMap Untyped)
+data TopStore = TopStore !(M.Map (Int, String) Untyped)
 
-emptyRefStore :: RefStore
-emptyRefStore = RefStore M.empty
+emptyTopStore :: TopStore
+emptyTopStore = TopStore M.empty
 
-getOrCreateGlobalRefWith :: Int -> a -> Strict (IORef a)
-getOrCreateGlobalRefWith i v = do
-  RefStore r <- get
-  case M.lookup i r of
-    Just ref -> return (typed ref)
-    Nothing  -> do
-      ref <- liftIOInStrict $ newIORef v
-      put (RefStore $ M.insert i (untyped ref) r)
-      return ref
+unwrapStore :: TopStore -> M.Map (Int, String) Untyped
+unwrapStore (TopStore s) = s
+
+readOrExecuteTop :: (Int, String) -> Strict a -> Strict a
+readOrExecuteTop k v = do
+  entry <- gets (M.lookup k . unwrapStore)
+  case entry of
+    Just val -> return (typed val)
+    _        -> do val <- v
+                   modify (TopStore . M.insert k (untyped val) . unwrapStore)
+                   return val
 
 writeToRef :: IORef a -> a -> Strict a
 writeToRef ref a = do

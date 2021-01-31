@@ -3,5 +3,18 @@ module Example where
 
 data Test = Test Int
 
+
 testShare :: Test
 testShare = Test (let _ = print "Hello" in 5 :: Int)
+
+globalRef :: IORef Int
+globalRef = ref 0
+
+testId :: a -> a
+testId x = let val = readRef globalRef + 1
+               _   = putStrLn ("Id application No. " ++ show val)
+               _   = writeRef globalRef val
+            in x
+
+testTop :: Int
+testTop = testId (testId (testId (testId (testId 1))))

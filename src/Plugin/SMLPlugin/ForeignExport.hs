@@ -19,7 +19,7 @@ module Plugin.SMLPlugin.ForeignExport
   , IsString(..)
   , B.putStr, B.putStrLn, B.print, B.getChar, B.getLine
   , B.handle, B.raise, B.orElse
-  , globalRef, ref, readRef, writeRef
+  , ref, readRef, writeRef
   , IORef
   ) where
 

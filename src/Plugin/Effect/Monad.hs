@@ -19,12 +19,12 @@ The monad type is a wrapper over the
 module Plugin.Effect.Monad
   ( SML(..), type (-->), share
   , Normalform(..), runEffect
-  , globalRef, ref, readRef, writeRef, runIO
+  , ref, readRef, writeRef, runIO
   , handleStrict, throwStrict, orElseStrict
   , SMLTag(..)
   , liftSML1, liftSML2
   , apply1, apply2, apply2Unlifted, apply3
-  , bind, rtrn, fmp, shre, seqValue)
+  , bind, rtrn, fmp, shre, shreTopLevel, seqValue)
   where
 
 import Control.Monad.IO.Class
@@ -58,9 +58,14 @@ shre m = m >>= return . return
 seqValue :: SML a -> SML b -> SML b
 seqValue a b = a >>= \a' -> a' `seq` b
 
+{-# INLINE[0] shreTopLevel #-}
+shreTopLevel :: (Int, String) -> SML a -> SML a
+shreTopLevel key (SML act) = SML $ readOrExecuteTop key act
+
 {-# RULES
-"bind/rtrn"       forall f x. bind (rtrn x) f = f x
-  #-}
+"bind/rtrn"    forall f x. bind (rtrn x) f = f x
+"shreTopLevel" forall x i. shreTopLevel i (rtrn x) = rtrn x
+    #-}
   -- "bind/rtrn'let"   forall e x. let b = e in rtrn x = rtrn (let b = e in x)
 
 instance Applicative SML where
@@ -75,13 +80,10 @@ instance MonadFail SML where
 
 instance Sharing SML where
   share = shre
+  shareTopLevel = shreTopLevel
 
 runEffect :: MonadIO io => SML a -> io a
 runEffect (SML a) = runStrict a
-
-globalRef :: Shareable SML a => SML (Int --> a --> IORef a)
-globalRef = return $ \(SML v) -> return $ \(SML a) -> SML (
-  v >>= \i -> a >>= \val -> getOrCreateGlobalRefWith i val)
 
 ref :: Shareable SML a => SML (a --> IORef a)
 ref = return $ \(SML a) -> SML (
@@ -91,7 +93,7 @@ readRef :: Shareable SML a => SML (IORef a --> a)
 readRef = return $ \(SML ioref) -> SML (
   ioref >>= \r -> liftIOInStrict $ readIORef r)
 
-writeRef :: Shareable SML a => SML (IORef a --> a --> ())
+writeRef :: Shareable SML a => SML (SML (IORef a) -> SML (SML a -> SML ()))
 writeRef = return $ \(SML ioref) -> return $ \(SML a) -> SML (
   ioref >>= \r -> a >>= \val -> liftIOInStrict $ writeIORef r val)
 
