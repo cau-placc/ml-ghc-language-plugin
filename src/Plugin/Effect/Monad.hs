@@ -18,7 +18,7 @@ The monad type is a wrapper over the
 -}
 module Plugin.Effect.Monad
   ( SML(..), type (-->), share
-  , Normalform(..), runEffect
+  , Normalform(..), runEffect, runEffectNF
   , ref, readRef, writeRef, runIO
   , handleStrict, throwStrict, orElseStrict
   , SMLTag(..)
@@ -84,6 +84,9 @@ instance Sharing SML where
 
 runEffect :: MonadIO io => SML a -> io a
 runEffect (SML a) = runStrict a
+
+runEffectNF :: (Normalform SML a b, MonadIO io) => SML a -> io b
+runEffectNF a = runEffect (nf a)
 
 ref :: Shareable SML a => SML (a --> IORef a)
 ref = return $ \(SML a) -> SML (

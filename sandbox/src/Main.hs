@@ -7,4 +7,5 @@ import Plugin.SMLPlugin.Encapsulation
 main :: IO ()
 main = do
   _ <- runSML testShare
-  return ()
+  names <- $(runGeneric 'playerNames) 2
+  print names

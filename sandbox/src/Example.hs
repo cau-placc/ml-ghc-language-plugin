@@ -18,3 +18,10 @@ testId x = let val = readRef globalRef + 1
 
 testTop :: Int
 testTop = testId (testId (testId (testId (testId 1))))
+
+playerNames :: Int -> [String]
+playerNames num =
+  [ name | i <- [1..num]
+  , let _ = putStrLn $ "Enter name for player " ++ show i ++ ":"
+  , let name = getLine
+  ]

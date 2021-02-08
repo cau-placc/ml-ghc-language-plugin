@@ -94,6 +94,7 @@ common deps
     Plugin.Trans.PatternMatching
     Plugin.Trans.ConstraintSolver
     Plugin.Trans.Rule
+    Plugin.Effect.THEval
 
 library
   import: deps
