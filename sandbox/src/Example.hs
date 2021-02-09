@@ -3,9 +3,28 @@ module Example where
 
 data Test = Test Int
 
-
 testShare :: Test
 testShare = Test (let _ = print "Hello" in 5 :: Int)
+
+testNested1 :: Bool
+testNested1 = case testShare of
+  (Test _) -> True
+
+testNested2 :: Bool
+testNested2 = case testShare of
+  (Test _) -> True
+
+testNestedL :: Bool
+testNestedL = case testShare of
+  (Test ~x) -> True
+
+an :: Bool -> Bool -> Bool
+an True True = True
+an _ _       = False
+
+testAn :: Bool
+testAn = let x = testNestedL
+  in an (an x testNested1) testNested2
 
 globalRef :: IORef Int
 globalRef = ref 0
