@@ -6,8 +6,6 @@ import System.Process
 import System.Exit
 import System.Environment
 
-import SemanticTests
-
 tests :: IO [Test]
 tests = do
   path <- makeAbsolute "test-examples"
@@ -16,16 +14,11 @@ tests = do
   let args = if null args' then ["Semantic", "Compile"] else args'
   return
     [ if "Compile" `notElem` args then noTest else testGroup "Compile Tests"
-    -- [ Test (mkCompileTest Succeed    "Coin.hs")
-    -- , Test (mkCompileTest Succeed    "Data.hs")
     [ Test (mkCompileTest Succeed    "Data.hs")
-    -- , Test (mkCompileTest Succeed    "Import.hs")
     , Test (mkCompileTest ExpectFail "ImportHaskell.hs")
     , Test (mkCompileTest Succeed    "PatternMatching.hs")
-    -- , Test (mkCompileTest Succeed    "Wrapper.hs")
     , Test (mkCompileTest Succeed    "Record.hs")
     , Test (mkCompileTest Succeed    "InstanceImport.hs")
-    -- , Test (mkCompileTest Succeed    "PolyFailed.hs")
     , Test (mkCompileTest Succeed    "Typeclass.hs")
     , Test (mkCompileTest Succeed    "OverloadedStrings.hs")
     , Test (mkCompileTest Succeed    "MultiParamFlexible.hs")
@@ -37,11 +30,7 @@ tests = do
     , Test (mkCompileTest Succeed    "DefaultSignaturesImport.hs")
     ]
     , if "Semantic" `notElem` args then noTest else testGroup "Semantic Tests"
-    [ -- Test (mkSemanticTest letPattern)
-    -- , Test (mkSemanticTest unknownNat)
-    -- , Test (mkSemanticTest guards)
-    -- , Test (mkSemanticTest bangPattern)
-    -- , Test (mkSemanticTest noBangPattern)
+    [
     ]]
   where noTest = testGroup "Empty Group" []
 

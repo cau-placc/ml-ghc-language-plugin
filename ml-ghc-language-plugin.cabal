@@ -1,5 +1,5 @@
 cabal-version: 3.0
-name:          curry-ghc-plugin
+name:          ml-ghc-language-plugin
 synopsis:      A compiler plugin to provide nondeterminism as a language feature
 version:       0.1.0.0
 license:       BSD-3-Clause
@@ -70,7 +70,7 @@ common deps
   other-modules:
     Data.Syb
     Plugin.Dump
-    Plugin.SMLPlugin.ForeignExport
+    Plugin.Trans.Config
     Plugin.Trans.Expr
     Plugin.Trans.Import
     Plugin.Trans.Constr
@@ -94,19 +94,23 @@ common deps
     Plugin.Trans.PatternMatching
     Plugin.Trans.ConstraintSolver
     Plugin.Trans.Rule
-    Plugin.Effect.THEval
 
 library
   import: deps
   exposed-modules:
-    Plugin.SMLPlugin
-    Plugin.SMLPlugin.BuiltIn
-    Plugin.SMLPlugin.Encapsulation
-    Plugin.SMLPlugin.Prelude
-    Plugin.Effect.Monad
+    Plugin.LanguagePlugin
     Plugin.Effect.Classes
     Plugin.Effect.Annotation
+
+    Plugin.SMLPlugin
+    Plugin.SMLPlugin.Prelude
+    Plugin.SMLPlugin.BuiltIn
+    Plugin.SMLPlugin.Encapsulation
+    Plugin.Effect.Monad
+  other-modules:
+    Plugin.SMLPlugin.ForeignExport
     Plugin.Effect.MLEffect
+    Plugin.Effect.THEval
 
 test-suite tests
   import:         deps
@@ -115,21 +119,20 @@ test-suite tests
   test-module:    Tests
   other-modules:
     SemanticTests
-    -- Tests.Guards
-    -- Tests.UnknownNat
-    -- Tests.LetPattern
-    -- Tests.Bang
 
+    Plugin.LanguagePlugin
     Plugin.SMLPlugin
     Plugin.SMLPlugin.BuiltIn
     Plugin.SMLPlugin.Encapsulation
+    Plugin.SMLPlugin.ForeignExport
     Plugin.SMLPlugin.Prelude
     Plugin.Effect.Monad
     Plugin.Effect.Classes
     Plugin.Effect.Annotation
     Plugin.Effect.MLEffect
+    Plugin.Effect.THEval
   build-depends:
-    curry-ghc-plugin,
+    ml-ghc-language-plugin,
     process   -any,
     filepath  -any,
     directory -any,

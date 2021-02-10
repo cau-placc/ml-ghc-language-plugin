@@ -5,53 +5,11 @@ module SemanticTests where
 import Distribution.TestSuite
 import Control.Concurrent
 
-import Plugin.SMLPlugin.Encapsulation
-
--- import qualified Tests.Guards     as Test
--- import qualified Tests.UnknownNat as Test
--- import qualified Tests.LetPattern as Test
--- import qualified Tests.Bang       as Test
-
 data SemanticTestDescr = forall a. (Eq a, Show a) => TestDescr
   {  testExpr   :: IO a
   ,  testResult :: IO a
   ,  testName   :: String
   }
-
--- unknownNat :: SemanticTestDescr
--- unknownNat = TestDescr
---   { testExpr   = take 1 (eval DFS Test.unknownNat)
---   , testResult = [1]
---   , testName   = "unknownNat"
---   }
-
--- guards :: SemanticTestDescr
--- guards = TestDescr
---   { testExpr   = take 1 (eval2 DFS Test.take 3 [(1 :: Int)..10])
---   , testResult = [[1,2,3]]
---   , testName   = "take"
---   }
-
--- letPattern :: SemanticTestDescr
--- letPattern = TestDescr
---   { testExpr   = not (null (eval DFS Test.letPattern))
---   , testResult = True
---   , testName   = "letPattern"
---   }
-
--- bangPattern :: SemanticTestDescr
--- bangPattern = TestDescr
---   { testExpr   = null (eval DFS Test.testBang)
---   , testResult = True
---   , testName   = "bangPattern"
---   }
-
--- noBangPattern :: SemanticTestDescr
--- noBangPattern = TestDescr
---   { testExpr   = eval DFS Test.testNoBang
---   , testResult = [()]
---   , testName   = "noBangPattern"
---   }
 
 mkSemanticTest :: SemanticTestDescr -> TestInstance
 mkSemanticTest (TestDescr e expected nm) = TestInstance
