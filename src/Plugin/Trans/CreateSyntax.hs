@@ -29,7 +29,7 @@ import GHC.Core.TyCo.Rep
 import GHC.Core.ConLike
 import GHC.Data.Bag
 
-import Plugin.Effect.Monad
+import Plugin.SMLPlugin.Monad
 import Plugin.Trans.Constr
 import Plugin.Trans.Type
 import Plugin.Trans.Util

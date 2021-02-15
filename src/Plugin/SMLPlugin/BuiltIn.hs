@@ -37,7 +37,7 @@ import           GHC.Types (RuntimeRep)
 import           Data.IORef
 import           Data.Typeable
 
-import Plugin.Effect.Monad
+import Plugin.SMLPlugin.Monad
 import Plugin.Effect.Classes (Shareable(..))
 
 

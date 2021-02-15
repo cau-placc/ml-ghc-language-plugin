@@ -29,7 +29,7 @@ import Data.IORef
 
 import Control.Applicative
 
-import Plugin.Effect.Monad
+import Plugin.SMLPlugin.Monad
 import Plugin.SMLPlugin.BuiltIn as B
   ( putStr, putStrLn, print, getChar, getLine
   , handle, raise, orElse )

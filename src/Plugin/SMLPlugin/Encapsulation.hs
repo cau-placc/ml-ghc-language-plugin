@@ -18,8 +18,8 @@ module Plugin.SMLPlugin.Encapsulation
   ) where
 
 import Control.Monad.IO.Class
-import Plugin.Effect.Monad
-import Plugin.Effect.THEval
+import Plugin.SMLPlugin.Monad
+import Plugin.SMLPlugin.THEval
 
 -- | Run a nullary ML function.
 runSML :: (Normalform SML a b, MonadIO io) => SML a -> io b

@@ -107,10 +107,10 @@ library
     Plugin.SMLPlugin.Prelude
     Plugin.SMLPlugin.BuiltIn
     Plugin.SMLPlugin.Encapsulation
-    Plugin.Effect.Monad
+    Plugin.SMLPlugin.Monad
   other-modules:
     Plugin.SMLPlugin.ForeignExport
-    Plugin.Effect.THEval
+    Plugin.SMLPlugin.THEval
 
 test-suite tests
   import:         deps
@@ -126,10 +126,10 @@ test-suite tests
     Plugin.SMLPlugin.Encapsulation
     Plugin.SMLPlugin.ForeignExport
     Plugin.SMLPlugin.Prelude
-    Plugin.Effect.Monad
+    Plugin.SMLPlugin.Monad
     Plugin.Effect.Classes
     Plugin.Effect.Annotation
-    Plugin.Effect.THEval
+    Plugin.SMLPlugin.THEval
   build-depends:
     ml-ghc-language-plugin,
     process   -any,

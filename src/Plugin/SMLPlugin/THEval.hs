@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections   #-}
 {-|
-Module      : Plugin.Effect.THEval
+Module      : Plugin.SMLPlugin.THEval
 Description : TemplateHaskell functions to generate wrappers.
 Copyright   : (c) Kai-Oliver Prott (2020)
 Maintainer  : kai.prott@hotmail.de
@@ -9,13 +9,13 @@ Maintainer  : kai.prott@hotmail.de
 This module contains functions to automatically generate the correct wrapper
 for functions with an arbitrary arity.
 -}
-module Plugin.Effect.THEval (runGeneric, runN) where
+module Plugin.SMLPlugin.THEval (runGeneric, runN) where
 
 import Control.Monad
 
 import Language.Haskell.TH
 
-import Plugin.Effect.Monad
+import Plugin.SMLPlugin.Monad
 
 -- | 'runGeneric' encapsulates a ML computation and runs its
 --   results in an IOMonad. This encapsulation can handle

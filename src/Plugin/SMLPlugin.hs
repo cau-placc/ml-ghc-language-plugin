@@ -9,7 +9,7 @@ import Plugin.Trans.Config
 plugin :: Plugin
 plugin = addStrictFlag (setConfigFlagsFor flags languagePlugin)
   where
-    flags = [ (fst monadModConfigStr, "Plugin.Effect.Monad")
+    flags = [ (fst monadModConfigStr, "Plugin.SMLPlugin.Monad")
             , (fst monadNameConfigStr, "SML")
             , (fst preludeModConfigStr, "Plugin.SMLPlugin.Prelude")
             , (fst builtInModConfigStr, "Plugin.SMLPlugin.BuiltIn") ]

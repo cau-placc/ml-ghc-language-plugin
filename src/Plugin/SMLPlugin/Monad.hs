@@ -9,7 +9,7 @@
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE PatternSynonyms            #-}
 {-|
-Module      : Plugin.Effect.Monad
+Module      : Plugin.SMLPlugin.Monad
 Description : Convenience wrapper for the effect
 Copyright   : (c) Kai-Oliver Prott (2020)
 Maintainer  : kai.prott@hotmail.de
@@ -19,7 +19,7 @@ convenicence functions.
 The monad type is a wrapper over the
 'Strict' type from 'Plugin.Effect.MLEffect'.
 -}
-module Plugin.Effect.Monad
+module Plugin.SMLPlugin.Monad
   ( SML(..), type (-->), share
   , Normalform(..), runEffect, runEffectNF
   , ref, readRef, writeRef, runIO
