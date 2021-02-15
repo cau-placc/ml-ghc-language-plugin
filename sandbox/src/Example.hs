@@ -1,6 +1,11 @@
 {-# OPTIONS_GHC -fplugin Plugin.SMLPlugin #-}
 module Example where
 
+data TestFun = TestFun (Bool -> Bool)
+
+test :: TestFun
+test = TestFun id
+
 data Test = Test Int
 
 testShare :: Test

@@ -31,6 +31,7 @@ import           Prelude                     ( ($), Int, Integer, Char
                                              , Float, Double
                                              , Bool(..), Ordering(..) )
 import qualified GHC.Real               as P
+import           Control.Monad.Trans.Class
 import           Unsafe.Coerce
 import           GHC.Types (RuntimeRep)
 import           Data.IORef
@@ -39,7 +40,14 @@ import           Data.Typeable
 import Plugin.Effect.Monad
 import Plugin.Effect.Classes (Shareable(..))
 
--- | Alias for Shareable constraint specialized to the nondeterminism monad.
+
+-- | This is a lifted version of the unrestricted function type constructor
+type (:->) r s a b = (SML a -> SML b)
+
+-- | This is a lifted version of the restricted function type constructor
+type (:-->) m r s a b = (SML a -> SML b)
+
+-- | Alias for Shareable constraint specialized to the SML monad.
 type ShareableN a = Shareable SML a
 
 -- * Some IO Effects
@@ -69,17 +77,17 @@ getLine = liftE (runIO P.getLine)
 raise :: (ShowND a, Typeable a, Shareable SML a, Shareable SML b)
       => SML (SML a -> SML b)
 raise = P.return $ \a -> show P.>>= \f -> nf (f a) P.>>= \s ->
-  SML (throwStrict (unSML a) s)
+  throwStrict a s
 
 handle :: (Typeable b, Shareable SML a, Shareable SML b)
        => SML (SML a -> SML (SML (SML b -> SML a) -> SML a))
-handle = P.return $ \(SML act) -> P.return $ \(SML cse) ->
-  SML $ handleStrict act (P.fmap (\cse' -> unSML P.. cse' P.. SML) cse)
+handle = P.return $ \act -> P.return $ \cse ->
+  handleStrict act cse
 
 orElse :: (Typeable a, Shareable SML a)
        => SML (SML a -> SML (SML a -> SML a))
-orElse = P.return $ \(SML a1) -> P.return $ \(SML a2) ->
-  SML $ orElseStrict a1 a2
+orElse = P.return $ \a1 -> P.return $ \a2 ->
+  orElseStrict a1 a2
 
 -- * Lifted list type and internal instances
 
@@ -170,7 +178,7 @@ type RationalND = RatioND Integer
 -- Pattern match failure is translated to a failed for Curry,
 -- ignoring the string.
 pE :: ShareableN a => SML (ListND Char --> a)
-pE = P.return (\l -> nf l P.>>= P.fail)
+pE = P.return (\l -> nf l P.>>= \s -> SML $ lift $ lift $ P.fail s)
 
 -- | Lifted identity function
 id :: SML (a --> a)

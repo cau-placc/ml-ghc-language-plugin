@@ -110,7 +110,6 @@ library
     Plugin.Effect.Monad
   other-modules:
     Plugin.SMLPlugin.ForeignExport
-    Plugin.Effect.MLEffect
     Plugin.Effect.THEval
 
 test-suite tests
@@ -130,7 +129,6 @@ test-suite tests
     Plugin.Effect.Monad
     Plugin.Effect.Classes
     Plugin.Effect.Annotation
-    Plugin.Effect.MLEffect
     Plugin.Effect.THEval
   build-depends:
     ml-ghc-language-plugin,

@@ -35,7 +35,7 @@ runGeneric fname = do
   ev <- genEval fname (zip vs argsT)
   if null vs
     then return ev
-    else return (LamE (map VarP (reverse vs)) ev)
+    else return (LamE (map VarP vs) ev)
 
 -- | 'runN' encapsulates a ML computation and runs its
 --   results in an IOMonad.
@@ -53,7 +53,7 @@ runN n = do
   vs <- replicateM n (newName "x")
   -- type does not matter, as long as it is not a nondeterministic function
   ev <- genEval fname (map (,WildCardT) vs)
-  return (LamE (map VarP (fname : reverse vs)) ev)
+  return (LamE (map VarP (fname : vs)) ev)
 
 -- | Deconstruct a lifted type to collect its arguments.
 collectArgs :: Type -> Q [Type]
@@ -71,33 +71,22 @@ collectArgs _                     = return []
 -- | Generate the 'runEffect' part of a wrapper for a given
 -- wrapped function and list of arguments.
 genEval :: Name -> [(Name, Type)] -> Q Exp
-genEval fname []               = do
-  e <- [| \nd -> runEffectNF nd |]
-  return (AppE e (VarE fname))
-genEval fname ((v, ty) : args) = do
-  lam <- [| \a f -> f >>= \fio -> runEffect (fio a) |]
-  wrap <- genLifting v [] ty
-  inner <- genEval fname args
-  return (AppE (AppE lam wrap) inner)
-
--- | Generate the lifting for the unlifted argument of a wrapper,
--- so that it matches the lifted type of the wrapped function.
-genLifting :: Name -> [Name] -> Type -> Q Exp
-genLifting v vs (AppT (ConT nm) (AppT (AppT ArrowT _) ty2))
- | ndName == nm = do
-  -- the arg is a nondet function type, so we create the term
-  -- return (\a -> rest)
-  v' <- newName "a"
-  rest <- genLifting v (v':vs) ty2
-  ret <- [| return |]
-  return (AppE ret (ParensE (LamE [VarP v'] rest)))
-genLifting v vs _ = do
-  -- the arg is not a nondet function type, so we apply all variables [v1..vn]
-  -- we have collected to "v". If vs is empty, this is just return v, otherwise
-  -- return v <*> v1 <*> ... <*> vn
-  ret <- [| return |]
-  app <- [| (<*>)  |]
-  return (foldl (\b -> UInfixE b app . VarE) (AppE ret (VarE v)) (reverse vs))
+genEval fname [] = do
+  rEff  <- [| runEffectNF |]
+  return (AppE rEff (VarE fname))
+genEval fname args = do
+  rEff  <- [| \inn f -> runEffectNF (f >>= inn) |]
+  inner <- genHelp args
+  return (foldl AppE rEff [inner, VarE fname])
+  where
+    genHelp :: [(Name, Type)] -> Q Exp
+    genHelp []            = [| return |]
+    genHelp ((v,_):rest) = do
+      x <- newName "f"
+      ex <- [| \inn vx vv -> vx (liftE (return vv)) >>= inn |]
+      inner <- genHelp rest
+      let lam = foldl AppE ex [inner, VarE x, VarE v]
+      return (LamE [VarP x] lam)
 
 -- | Name of the monad 'SML' used in the lifting.
 ndName :: Name

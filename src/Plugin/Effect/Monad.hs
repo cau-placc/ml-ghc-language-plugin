@@ -1,10 +1,13 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE ExistentialQuantification  #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE TypeApplications           #-}
-{-# LANGUAGE DeriveLift                 #-}
+{-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE PatternSynonyms            #-}
 {-|
 Module      : Plugin.Effect.Monad
 Description : Convenience wrapper for the effect
@@ -28,31 +31,38 @@ module Plugin.Effect.Monad
   where
 
 import Control.Monad.IO.Class
+import Control.Monad.Trans.Class
+import Control.Exception
 import Data.IORef
+import Data.Typeable
 
-import Plugin.Effect.MLEffect
-import Plugin.Effect.Classes     (Sharing(..), Shareable(..), Normalform(..))
+import Plugin.Effect.Classes
+import Plugin.Effect.Transformers
 import Plugin.Effect.Annotation
 
 -- | The actual monad for nondeterminism used by the plugin.
-data SML a = SML { unSML :: Strict a }
-  deriving Functor
+newtype SML a = SML { unSML :: StrictT (TopSharingT IO) a }
+  deriving newtype (Functor, Applicative, Monad, Sharing, SharingTop)
+
+{-# COMPLETE Strict #-}
+pattern Strict :: TopSharingT IO a -> SML a
+pattern Strict x = SML (StrictT x)
 
 {-# INLINE[0] bind #-}
 bind :: SML a -> (a -> SML b) -> SML b
-bind (SML a) f = SML (a >>= unSML . f)
+bind = (>>=)
 
 {-# INLINE[0] rtrn #-}
 rtrn :: a -> SML a
-rtrn a = SML (pureS a)
+rtrn = pure
 
 {-# INLINE[0] fmp #-}
 fmp :: (a -> b) -> SML a -> SML b
-fmp f (SML a) = SML (fmap f a)
+fmp = fmap
 
 {-# INLINE[0] shre #-}
 shre :: SML a -> SML (SML a)
-shre m = m >>= return . return
+shre = share
 
 {-# INLINE seqValue #-}
 seqValue :: SML a -> SML b -> SML b
@@ -60,7 +70,7 @@ seqValue a b = a >>= \a' -> a' `seq` b
 
 {-# INLINE[0] shreTopLevel #-}
 shreTopLevel :: (Int, String) -> SML a -> SML a
-shreTopLevel key (SML act) = SML $ readOrExecuteTop key act
+shreTopLevel = shareTopLevel
 
 {-# RULES
 "bind/rtrn"    forall f x. bind (rtrn x) f = f x
@@ -68,40 +78,59 @@ shreTopLevel key (SML act) = SML $ readOrExecuteTop key act
     #-}
   -- "bind/rtrn'let"   forall e x. let b = e in rtrn x = rtrn (let b = e in x)
 
-instance Applicative SML where
-  pure = rtrn
-  SML f <*> SML a = SML (f <*> a)
-
-instance Monad SML where
-  (>>=) = bind
-
-instance MonadFail SML where
-  fail s = SML (fail s)
-
-instance Sharing SML where
-  share = shre
-  shareTopLevel = shreTopLevel
-
 runEffect :: MonadIO io => SML a -> io a
-runEffect (SML a) = runStrict a
+runEffect (SML a) = liftIO $ runTopSharingT (runStrictT a)
 
 runEffectNF :: (Normalform SML a b, MonadIO io) => SML a -> io b
 runEffectNF a = runEffect (nf a)
 
 ref :: Shareable SML a => SML (a --> IORef a)
 ref = return $ \(SML a) -> SML (
-  a >>= \val -> liftIOInStrict $ newIORef val)
+  a >>= \val -> lift $ lift $ newIORef val)
 
 readRef :: Shareable SML a => SML (IORef a --> a)
 readRef = return $ \(SML ioref) -> SML (
-  ioref >>= \r -> liftIOInStrict $ readIORef r)
+  ioref >>= \r -> lift $ lift $ readIORef r)
 
 writeRef :: Shareable SML a => SML (SML (IORef a) -> SML (SML a -> SML ()))
 writeRef = return $ \(SML ioref) -> return $ \(SML a) -> SML (
-  ioref >>= \r -> a >>= \val -> liftIOInStrict $ writeIORef r val)
+  ioref >>= \r -> a >>= \val -> lift $ lift $ writeIORef r val)
+
+data UserException = forall a. Typeable a => UEX a String TopStore
+
+instance Show UserException where
+  show (UEX _ disp _) = disp
+
+instance Exception UserException where
+
+handleStrict :: forall a b. Typeable b
+             => SML a -> SML (SML b -> SML a) -> SML a
+handleStrict (Strict l1) (Strict l2) = Strict $ TopSharingT $ \c r -> do
+  (a, r') <- runTopSharingTWith l1 r `catch` handleUE
+  c a r'
+  where
+    handleUE :: UserException -> IO (a, TopStore)
+    handleUE (UEX b d r) = case cast b of
+      Just b' -> runTopSharingTWith l2 r >>= \(f, r') ->
+                 runTopSharingTWith ( runStrictT $ unSML $ f (return b')) r'
+      Nothing -> throw (UEX b d r)
+
+orElseStrict :: SML a -> SML a -> SML a
+orElseStrict (Strict l1) (Strict l2) = Strict $ TopSharingT $ \c r -> do
+  (a, r') <- runTopSharingTWith l1 r `catch` \(UEX _ _ rx) ->
+    runTopSharingTWith l2 rx
+  c a r'
+
+throwStrict :: Typeable a => SML a -> String -> SML b
+throwStrict (Strict l) disp = Strict $ TopSharingT $ \_ r -> do
+  (v, r') <- runTopSharingTWith l r
+  throw (UEX v disp r')
+
+runTopSharingTWith :: Monad n => TopSharingT n a -> TopStore -> n (a, TopStore)
+runTopSharingTWith m r = fromTopSharingT m (\a c -> return (a, c)) r
 
 runIO :: IO a -> SML a
-runIO io = SML (liftIOInStrict io)
+runIO io = SML (lift (lift io))
 
 infixr 0 -->
 type a --> b = (SML a -> SML b)
