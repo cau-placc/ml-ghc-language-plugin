@@ -248,5 +248,5 @@ instance (Sharing m) => Shareable m Char where
 instance (Sharing m) => Shareable m (a %n -> b) where
   shareArgs = return
 
-instance (Monad m) => Shareable m (IORef a) where
-  shareArgs _ = return
+instance (Sharing m) => Shareable m (IORef a) where
+  shareArgs = return

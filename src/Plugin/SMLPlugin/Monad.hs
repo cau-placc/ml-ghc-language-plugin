@@ -8,6 +8,7 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE PatternSynonyms            #-}
+{-# LANGUAGE DerivingVia                #-}
 {-|
 Module      : Plugin.SMLPlugin.Monad
 Description : Convenience wrapper for the effect
@@ -41,11 +42,13 @@ import Plugin.Effect.Transformers
 import Plugin.Effect.Annotation
 
 -- | The actual monad for nondeterminism used by the plugin.
-newtype SML a = SML { unSML :: StrictT (TopSharingT IO) a }
-  deriving newtype (Functor, Applicative, Monad, Sharing, SharingTop)
+newtype SML a = SML { unSML :: StrictT SML (TopSharingT SML IO) a }
+  deriving (Functor, Applicative, Monad, Sharing)
+                        via StrictT SML (TopSharingT SML IO)
+  deriving (SharingTop) via TopSharingT SML IO
 
 {-# COMPLETE Strict #-}
-pattern Strict :: TopSharingT IO a -> SML a
+pattern Strict :: TopSharingT SML IO a -> SML a
 pattern Strict x = SML (StrictT x)
 
 {-# INLINE[0] bind #-}
@@ -126,7 +129,7 @@ throwStrict (Strict l) disp = Strict $ TopSharingT $ \_ r -> do
   (v, r') <- runTopSharingTWith l r
   throw (UEX v disp r')
 
-runTopSharingTWith :: Monad n => TopSharingT n a -> TopStore -> n (a, TopStore)
+runTopSharingTWith :: Monad m => TopSharingT n m a -> TopStore -> m (a, TopStore)
 runTopSharingTWith m r = fromTopSharingT m (\a c -> return (a, c)) r
 
 runIO :: IO a -> SML a
