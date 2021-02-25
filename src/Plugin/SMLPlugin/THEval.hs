@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections   #-}
+{-# LANGUAGE LambdaCase      #-}
 {-|
 Module      : Plugin.SMLPlugin.THEval
 Description : TemplateHaskell functions to generate wrappers.
@@ -29,7 +30,10 @@ import Plugin.SMLPlugin.Monad
 --   >>> $(runGeneric 'someUnaryFunction  ) arg1
 runGeneric :: Name -> Q Exp
 runGeneric fname = do
-  VarI _ ty _ <- reify fname
+  ty <- reify fname >>= \case
+    VarI     _ ty _ -> return ty
+    ClassOpI _ ty _ -> return ty
+    _               -> fail "Only functions can be captured"
   argsT <- collectArgs ty
   vs <- replicateM (length argsT) (newName "x")
   ev <- genEval fname (zip vs argsT)
