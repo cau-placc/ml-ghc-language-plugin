@@ -129,6 +129,7 @@ test-suite tests
     Plugin.SMLPlugin.Monad
     Plugin.Effect.Classes
     Plugin.Effect.Annotation
+    Plugin.Effect.Transformers
     Plugin.SMLPlugin.THEval
   build-depends:
     ml-ghc-language-plugin,

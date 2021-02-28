@@ -14,8 +14,7 @@ tests = do
   let args = if null args' then ["Semantic", "Compile"] else args'
   return
     [ if "Compile" `notElem` args then noTest else testGroup "Compile Tests"
-    [ Test (mkCompileTest Succeed    "Data.hs")
-    , Test (mkCompileTest ExpectFail "ImportHaskell.hs")
+    [ Test (mkCompileTest ExpectFail "ImportHaskell.hs")
     , Test (mkCompileTest Succeed    "PatternMatching.hs")
     , Test (mkCompileTest Succeed    "Record.hs")
     , Test (mkCompileTest Succeed    "InstanceImport.hs")

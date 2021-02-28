@@ -31,7 +31,6 @@ module Plugin.Effect.Classes where
 import GHC.Generics as Gen
 import Data.IORef
 import Data.Kind
-import Data.Coerce
 
 -- | A class for Monads with support for explicit sharing of effects.
 class Monad s => Sharing s where

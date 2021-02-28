@@ -9,7 +9,7 @@ data Foo = Foo
   deriving Show
 
 odd :: Id Int
-odd = failed
+odd = odd
 
 test1 :: Id Int
 test1 = return 3
