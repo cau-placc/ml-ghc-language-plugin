@@ -56,7 +56,6 @@ import Plugin.Trans.Preprocess
 import Plugin.Trans.Class
 import Plugin.Trans.Rule
 import Plugin.Trans.Constr
-import Plugin.Trans.Warn
 import Plugin.Effect.Annotation
 
 -- | This GHC plugin turns GHC into a "compiler" for
@@ -127,8 +126,7 @@ liftMonadPlugin mdopts env = setGblEnv env $ do
   flags <- getDynFlags
   case mgLookupModule (hsc_mod_graph hsc) (tcg_mod env) of
     Just modSumm -> setDynFlags flags' $ do
-      ((w,e), _) <- liftIO $ deSugar hsc' (ms_location modSumm) env'
-      let msgs = (mapBag addNondetWarn w, e)
+      (msgs, _) <- liftIO $ deSugar hsc' (ms_location modSumm) env'
       addMessages msgs
       where
         flags' = gopt_unset flags Opt_DoCoreLinting
@@ -243,17 +241,17 @@ liftMonadPlugin mdopts env = setGblEnv env $ do
           -- suppress advanced infos, unless a debug option is set.
           then if DumpDerivingErrs `elem` d_phases dopts
             then do
-              addErrTc "The Curry-Plugin failed to derive internal instances."
+              addErrTc "The SML-Plugin failed to derive internal instances."
               failIfErrsM
               return env
             else do
               writeTcRef errsVar (emptyBag, emptyBag)
-              failWithTc $ "The Curry-Plugin failed to lift the" <+>
+              failWithTc $ "The SML-Plugin failed to lift the" <+>
                            "definitions in this module." $+$
                            "Did you use any unsupported language extension?" $+$
                            "To see all internal errors, use the flag" $$
                            "'-fplugin-opt" <+>
-                           "Plugin.CurryPlugin:dump-deriving-errs'"
+                           "Plugin.SMLPlugin:dump-deriving-errs'"
           -- If everything is ok, just continue as planned.
           else do
 
