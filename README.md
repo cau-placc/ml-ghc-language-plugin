@@ -6,7 +6,7 @@ such that the GHC can be used to compile strict Standard ML-style programs.
 
 ## Compatibility
 
-This plugin only works with GHC 8.10.1 and cannot be used with other versions.
+This plugin only works with a specific GHC 9.1 commit and cannot be used with other versions. It will be updated to 9.2, as soon as that GHC is released
 
 ## Using the plugin
 The plugin can be activated within a module by adding both
@@ -26,7 +26,7 @@ A sandbox project is available to play around with in `sandbox/`. It can be load
  - Most Language extensions are unsupported and will crash at compilation or run-time, but some of the extensions might work.
  - Sharing in let-expressions does not work in some edge-cases
  - Using `:r` in GHCi only works on the second try
- - Type errors mention the nondeterministic versions of type constructors
+ - Type errors sometimes mention the effectful versions of type constructors
  - HIE and HaskellLanguageServer do not work  
  - ~Stack outputs some decoding failures while compiling the project. This can be ignored safely.~ Fixed with stack version 2.3.3
 
