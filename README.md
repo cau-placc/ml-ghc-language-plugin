@@ -16,9 +16,9 @@ This brings a few basic functions, data types and type classes into scope, as we
 
 To evaluate an ML-Style computation, the user can import the computation in an ordinary Haskell module and use a function from `Plugin.SMLPlugin.Encapsulation` to execute it.
 
-## Using the plugin in a sandbox
+## Examples and using the plugin in a sandbox
 
-A sandbox project is available to play around with in `sandbox/`. It can be loaded by executing `stack repl sandbox` from the root of the repository.
+A sandbox project with examples is available to play around with in `sandbox/`. It can be loaded by executing `stack repl sandbox` from the root of the repository.
 
 ## Known Issues
 
