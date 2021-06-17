@@ -15,9 +15,10 @@ plugin = addStrictFlag (setConfigFlagsFor flags languagePlugin)
             , (fst builtInModConfigStr, "Plugin.SMLPlugin.BuiltIn") ]
 
 addStrictFlag :: Plugin -> Plugin
-addStrictFlag pl@(Plugin { dynflagsPlugin = dflagsPl }) =
-  pl { dynflagsPlugin = setStrict }
+addStrictFlag pl@(Plugin { driverPlugin = drivPl }) =
+  pl { driverPlugin = setStrict }
   where
-    setStrict cmdOpts flags = do
-      pluginFlags <- dflagsPl cmdOpts flags
-      return (pluginFlags `xopt_set` Strict `xopt_set` StrictData)
+    setStrict cmdOpts hsc = do
+      hsc' <- drivPl cmdOpts hsc
+      let pluginFlags = hsc_dflags hsc' `xopt_set` Strict `xopt_set` StrictData
+      return (hsc' { hsc_dflags = pluginFlags } )
