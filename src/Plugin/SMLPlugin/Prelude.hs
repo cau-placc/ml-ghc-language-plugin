@@ -55,7 +55,6 @@ otherwise = True
 
 data Maybe a = Nothing
              | Just a
-  deriving Eq
 
 instance Functor Maybe where
   fmap _ Nothing  = Nothing

@@ -22,6 +22,8 @@ library
   exposed-modules:
     Example
     Main
+    Deriv
+    DerivStand
 --
 -- executable sandbox
 --   import: deps
