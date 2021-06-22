@@ -11,6 +11,8 @@ plugin = addStrictFlag (setConfigFlagsFor flags languagePlugin)
   where
     flags = [ (fst monadModConfigStr, "Plugin.SMLPlugin.Monad")
             , (fst monadNameConfigStr, "SML")
+            , (fst funModConfigStr, "Plugin.SMLPlugin.Monad")
+            , (fst funNameConfigStr, "-->")
             , (fst preludeModConfigStr, "Plugin.SMLPlugin.Prelude")
             , (fst builtInModConfigStr, "Plugin.SMLPlugin.BuiltIn") ]
 

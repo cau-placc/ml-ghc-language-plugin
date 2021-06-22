@@ -9,6 +9,7 @@
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE PatternSynonyms            #-}
 {-# LANGUAGE DerivingVia                #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-|
 Module      : Plugin.SMLPlugin.Monad
 Description : Convenience wrapper for the effect
@@ -21,14 +22,15 @@ The monad type is a wrapper over the
 'Strict' type from 'Plugin.Effect.MLEffect'.
 -}
 module Plugin.SMLPlugin.Monad
-  ( SML(..), type (-->), share
+  ( SML(..), type (-->)(..), share
   , Normalform(..), runEffect, runEffectNF
   , ref, readRef, writeRef, runIO
   , handleStrict, throwStrict, orElseStrict
   , SMLTag(..)
   , liftSML1, liftSML2
-  , apply1, apply2, apply2Unlifted, apply3
-  , bind, rtrn, fmp, shre, shreTopLevel, seqValue)
+  , app, apply2, apply2Unlifted, apply3
+  , bind, rtrn, rtrnFunc, fmp, shre, shreTopLevel, seqValue
+  , rtrnFuncUnsafePoly, appUnsafePoly )
   where
 
 import Control.Monad.IO.Class
@@ -36,6 +38,7 @@ import Control.Monad.Trans.Class
 import Control.Exception
 import Data.IORef
 import Data.Typeable
+import Unsafe.Coerce
 
 import Plugin.Effect.Classes
 import Plugin.Effect.Transformers
@@ -58,6 +61,36 @@ bind = (>>=)
 {-# INLINE[0] rtrn #-}
 rtrn :: a -> SML a
 rtrn = pure
+
+{-# INLINE[0] rtrnFunc #-}
+rtrnFunc :: (SML a -> SML b) -> SML (a --> b)
+rtrnFunc = pure . Func
+
+{-# INLINE[0] app #-}
+app :: SML (a --> b) -> SML a -> SML b
+app mf ma = mf >>= \(Func f) -> f ma
+
+-- HACK:
+-- RankNTypes are not really supported for various reasons,
+-- but to test rewrite rules, we needed them to be supported at least
+-- when the functions with RankN types are used and defined in the same module.
+-- However, imagine we have a lambda with a (rank 2) type
+-- (forall x. blah) -> blub.
+-- Its lifted variant is something like
+-- (forall x. blah') --> blub'
+-- If we "unpack" the (-->) type constructor we get
+-- m (forall x. blah') -> m blub'
+-- This is bad, because the lifted type of the argument (forall x. blah)
+-- is (forall x. m blah') and not m (forall x. blah').
+-- To remedy this, we provide the following two functions using unsafeCoerce to
+-- accomodate such a RankN type.
+{-# INLINE[0] rtrnFuncUnsafePoly #-}
+rtrnFuncUnsafePoly :: forall a b a'. (a' -> SML b) -> SML (a --> b)
+rtrnFuncUnsafePoly f = pure (Func (unsafeCoerce f :: SML a -> SML b))
+
+{-# INLINE[0] appUnsafePoly #-}
+appUnsafePoly :: forall a b a'. SML (a --> b) -> a' -> SML b
+appUnsafePoly mf ma = mf >>= \(Func f) -> (unsafeCoerce f :: a' -> SML b) ma
 
 {-# INLINE[0] fmp #-}
 fmp :: (a -> b) -> SML a -> SML b
@@ -88,15 +121,15 @@ runEffectNF :: (Normalform SML a b, MonadIO io) => SML a -> io b
 runEffectNF a = runEffect (nf a)
 
 ref :: Shareable SML a => SML (a --> IORef a)
-ref = return $ \(SML a) -> SML (
+ref = rtrnFunc $ \(SML a) -> SML (
   a >>= \val -> lift $ lift $ newIORef val)
 
 readRef :: Shareable SML a => SML (IORef a --> a)
-readRef = return $ \(SML ioref) -> SML (
+readRef = rtrnFunc $ \(SML ioref) -> SML (
   ioref >>= \r -> lift $ lift $ readIORef r)
 
-writeRef :: Shareable SML a => SML (SML (IORef a) -> SML (SML a -> SML ()))
-writeRef = return $ \(SML ioref) -> return $ \(SML a) -> SML (
+writeRef :: Shareable SML a => SML (IORef a --> a --> ())
+writeRef = rtrnFunc $ \(SML ioref) -> rtrnFunc $ \(SML a) -> SML (
   ioref >>= \r -> a >>= \val -> lift $ lift $ writeIORef r val)
 
 data UserException = forall a. Typeable a => UEX a String TopStore
@@ -136,32 +169,39 @@ runIO :: IO a -> SML a
 runIO io = SML (lift (lift io))
 
 infixr 0 -->
-type a --> b = (SML a -> SML b)
+newtype a --> b = Func (SML a -> SML b)
+
+instance (Sharing m) => Shareable m (a --> b) where
+  shareArgs (Func f) = fmap Func (shareArgs f)
+
+instance (Normalform SML a1 a2, Normalform SML b1 b2)
+  => Normalform SML (a1 --> b1) (a2 -> b2) where
+    nf    mf =
+      mf >> return (error "Plugin Error: Cannot capture function types")
+    liftE mf = do
+      f <- mf
+      return (Func (liftE . fmap f . nf))
 
 -- | Lift a unary function with the lifting scheme of the plugin.
 liftSML1 :: (a -> b) -> SML (a --> b)
-liftSML1 f = return (\a -> a >>= \a' -> return (f a'))
+liftSML1 f = rtrnFunc (\a -> a >>= \a' -> return (f a'))
 
 -- | Lift a 2-ary function with the lifting scheme of the plugin.
 liftSML2 :: (a -> b -> c) -> SML (a --> b --> c)
-liftSML2 f = return (\a  -> return (\b  ->
-                a >>=   \a' -> b >>=   \b' -> return (f a' b')))
-
--- | Apply a lifted unary function to its lifted argument.
-apply1 :: SML (a --> b) -> SML a -> SML b
-apply1 f a = f >>= ($ a)
+liftSML2 f = rtrnFunc (\a  -> rtrnFunc (\b  ->
+                a >>=  \a' -> b >>=     \b' -> return (f a' b')))
 
 -- | Apply a lifted 2-ary function to its lifted arguments.
 apply2 :: SML (a --> b --> c) -> SML a -> SML b -> SML c
-apply2 f a b = apply1 f a >>= ($ b)
+apply2 f a b = app f a >>= \(Func f') -> f' b
 
 -- | Apply a lifted 2-ary function to its arguments, where just the
 -- first argument has to be lifted.
 apply2Unlifted :: SML (a --> b --> c)
                -> SML a -> b -> SML c
-apply2Unlifted f a b = apply1 f a >>= ($ return b)
+apply2Unlifted f a b = app f a >>= \(Func f') -> f' (return b)
 
 -- | Apply a lifted 3-ary function to its lifted arguments.
 apply3 :: SML (a --> b --> c --> d)
        -> SML a -> SML b -> SML c -> SML d
-apply3 f a b c = apply2 f a b >>= ($ c)
+apply3 f a b c = apply2 f a b >>= \(Func f') -> f' c
