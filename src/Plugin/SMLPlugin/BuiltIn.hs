@@ -36,7 +36,7 @@ import qualified GHC.Prim               as P
 import qualified GHC.Int                as P
 import           Control.Monad.Trans.Class
 import           Unsafe.Coerce
-import           GHC.Types (RuntimeRep)
+import           GHC.Types                   ( RuntimeRep, Multiplicity )
 import           Data.IORef
 import           Data.Typeable
 
@@ -191,10 +191,29 @@ id = rtrnFunc P.id
 not :: SML (Bool --> Bool)
 not = liftSML1 P.not
 
--- Lifted seq operator to force evaluation. Forces the effect and value.
+-- Note: In order to be able to keep all type-applications
+-- of the original code for the following "primops",
+-- we introduce the same number and order of type variables,
+-- even if they are unused
+
+-- | Lifted seq operator to force evaluation. Forces the effect and value.
 seq :: forall (k :: RuntimeRep) a b. SML (a --> b --> b)
 seq = rtrnFunc $ \a -> rtrnFunc $ \b ->
   (a P.>>= \a' -> P.seq a' b)
+
+-- | Lifted function to desugar left sections.
+leftSection :: forall (r1 :: RuntimeRep) (r2 :: RuntimeRep)
+                      (n :: Multiplicity) a b.
+               SML ((a --> b) --> a --> b)
+leftSection = rtrnFunc $ \f -> rtrnFunc $ \a ->
+  f `app` a
+
+-- | Lifted function to desugar right sections.
+rightSection :: forall (r1 :: RuntimeRep) (r2 :: RuntimeRep) (r3 :: RuntimeRep)
+                       (n1 :: Multiplicity) (n2 :: Multiplicity) a b c.
+                SML ((a --> b --> c) --> b --> a --> c)
+rightSection = rtrnFunc $ \f -> rtrnFunc $ \b -> rtrnFunc $ \a ->
+  f `app` a `app` b
 
 -- | Lifted const function
 const :: SML (a --> b --> a)
