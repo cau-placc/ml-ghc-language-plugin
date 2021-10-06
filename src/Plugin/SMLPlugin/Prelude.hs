@@ -159,24 +159,22 @@ asTypeOf x _ = x
 
 {-# INLINE map #-}
 map :: (a -> b) -> [a] -> [b]
-map f xs = build map'
-  where
-    map' c n = foldr (\x ys -> c (f x) ys) n xs
+map _ [] = []
+map f (x:xs) = f x : map f xs
 
 infixr 5 ++
+
 {-# INLINE (++) #-}
 (++) :: [a] -> [a] -> [a]
-xs ++ ys = build append'
-  where
-    {-# INLINE append' #-}
-    append' c n = foldr c (foldr c n ys) xs
+[] ++ ys = ys
+(x:xs) ++ ys = x : xs ++ ys
 
 {-# INLINE filter #-}
 filter :: (a -> Bool) -> [a] -> [a]
-filter p xs = build filter'
-  where
-    {-# INLINE filter' #-}
-    filter' c n = foldr (\a b -> if p a then c a b else b) n xs
+filter _ [] = []
+filter p (x:xs)
+  | p x = x : filter p xs
+  | otherwise = filter p xs
 
 head :: [a] -> a
 head (x:_) = x
@@ -188,9 +186,10 @@ last (_:xs) = last xs
 tail :: [a] -> [a]
 tail (_:xs) = xs
 
-init :: [a] -> [a]
+init :: forall a. [a] -> [a]
 init (x:xs) = init' x xs
   where
+    init' :: a -> [a] -> [a]
     init' _ []     = []
     init' y (z:zs) = y : init' z zs
 
@@ -203,24 +202,8 @@ infixl 9 !!
 
 {-# INLINE[0] foldr #-}
 foldr :: (a -> b -> b) -> b -> [a] -> b
-foldr _ b []     = b
+foldr _ b [] = b
 foldr f b (x:xs) = x `f` foldr f b xs
-
-{-# INLINE[0] build #-}
-build :: forall a. (forall b. (a -> b -> b) -> b -> b) -> [a]
-build ~g = g (:) []
-
-{-# INLINE[0] augment #-}
-augment :: forall a. (forall b. (a -> b -> b) -> b -> b) -> [a] -> [a]
-augment ~g xs = g (:) xs
-
-{-# RULES
-"fold/build"    forall k z (g :: forall b. (a -> b -> b) -> b -> b).
-                foldr k z (build g) = g k z
-
-"foldr/augment" forall k z xs (g :: forall b. (a -> b -> b) -> b -> b).
-                foldr k z (augment g xs) = g k (foldr k z xs)
- #-}
 
 {-# INLINE foldr1 #-}
 foldr1 :: (a -> a -> a) -> [a] -> a
@@ -242,11 +225,12 @@ null _  = False
 length :: [a] -> Int
 length = foldl (\c _ -> c + 1) 0
 
-reverse :: [a] -> [a]
+reverse :: forall a. [a] -> [a]
 reverse = reverse' []
   where
+    reverse' :: [a] -> [a] -> [a]
     reverse' acc []     = acc
-    reverse' acc (x:xs) = reverse' (x:acc) xs
+    reverse' acc (x:xs) = reverse' (x : acc) xs
 
 {-# INLINE and #-}
 and :: [Bool] -> Bool
@@ -266,10 +250,8 @@ all p = foldr (\a b -> p a && b) True
 
 {-# INLINE concat #-}
 concat :: [[a]] -> [a]
-concat xs = build concat'
-  where
-    {-# INLINE concat' #-}
-    concat' c n = foldr (\x y -> foldr c y x) n xs
+concat [] = []
+concat (x:xs) = x ++ concat xs
 
 concatMap :: (a -> [b]) -> [a] -> [b]
 concatMap f = foldr (\a b -> f a ++ b) []
@@ -281,13 +263,7 @@ iterate f x = x : iterate f (f x)
 -- in cyclic structures is unsupported
 {-# INLINE repeat #-}
 repeat :: forall a. a -> [a]
-repeat x = build repeat'
-  where
-    {-# INLINE repeat' #-}
-    repeat' :: (a -> b -> b) -> b -> b
-    repeat' c _ =
-      let repeat'' x' = c x' (repeat'' x)
-      in  repeat'' x
+repeat x = x : repeat x
 
 -- same as in repeat
 cycle :: [a] -> [a]
@@ -300,23 +276,18 @@ notElem :: Eq a => a -> [a] -> Bool
 notElem a = all (a/=)
 
 {-# INLINE zip #-}
-zip :: forall a b. [a] -> [b] -> [(a, b)]
-zip xs' ys' = build zip'
-  where
-    {-# INLINE zip' #-}
-    zip' :: ((a, b) -> c -> c) -> c -> c
-    zip' c n =
-      let zip'' (x:xs) (y:ys) = c (x, y) (zip'' xs ys)
-          zip'' _      _      = n
-      in  zip'' xs' ys'
+zip :: [a] -> [b] -> [(a, b)]
+zip [] _ = []
+zip _ [] = []
+zip (x:xs) (y : ys) = (x, y) : zip xs ys
 
 zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
-zipWith _ []     _      = []
-zipWith _ _      []     = []
-zipWith f (a:as) (b:bs) = f a b : zipWith f as bs
+zipWith _ [] _ = []
+zipWith _ _ [] = []
+zipWith f (a : as) (b : bs) = f a b : zipWith f as bs
 
 unzip :: [(a, b)] -> ([a], [b])
-unzip []            = ([], [])
-unzip ((a, b) : xs) = (a:as, b:bs)
+unzip [] = ([], [])
+unzip ((a, b) : xs) = (a : as, b : bs)
   where
     ~(as, bs) = unzip xs

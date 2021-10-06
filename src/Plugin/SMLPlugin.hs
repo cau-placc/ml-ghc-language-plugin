@@ -22,5 +22,5 @@ addStrictFlag pl@(Plugin { driverPlugin = drivPl }) =
   where
     setStrict cmdOpts hsc = do
       hsc' <- drivPl cmdOpts hsc
-      let pluginFlags = hsc_dflags hsc' `xopt_set` Strict `xopt_set` StrictData
+      let pluginFlags = hsc_dflags hsc' `xopt_set` StrictData -- `xopt_set` Strict
       return (hsc' { hsc_dflags = pluginFlags } )

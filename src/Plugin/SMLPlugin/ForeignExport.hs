@@ -19,6 +19,7 @@ module Plugin.SMLPlugin.ForeignExport
   , IsString(..)
   , B.putStr, B.putStrLn, B.print, B.getChar, B.getLine
   , B.handle, B.raise, B.orElse
+  , B.sendMail, B.readMail, B.downloadResource
   , ref, readRef, writeRef
   , IORef
   ) where
@@ -32,6 +33,6 @@ import Control.Applicative
 import Plugin.SMLPlugin.Monad
 import Plugin.SMLPlugin.BuiltIn as B
   ( putStr, putStrLn, print, getChar, getLine
-  , handle, raise, orElse )
+  , handle, raise, orElse, sendMail, readMail, downloadResource )
 
 {-# ANN module StandardML #-}

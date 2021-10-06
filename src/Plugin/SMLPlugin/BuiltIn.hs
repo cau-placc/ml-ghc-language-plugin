@@ -55,6 +55,23 @@ type ShareableN a = Shareable SML a
 
 -- * Some IO Effects
 
+sendMail :: SML (StringND --> ())
+sendMail = rtrnFunc $ \s ->
+  annotateUnlifted H L `app` putStrLn
+    `app` (append `app` liftE (P.return "Sending mail: ") `app` s)
+
+readMail :: SML StringND
+readMail = annotateUnlifted H H `app` ((putStr `app` liftE (P.return ":")) P.>> getLine)
+
+downloadResource :: SML (StringND --> StringND)
+downloadResource = rtrnFunc $ \url ->
+  annotateUnlifted L L
+    `app` ( do
+              urlStr <- nf url
+              runIO $ P.putStrLn ("Downloading resource: " P.++ urlStr)
+              liftE (P.return "prefix; ")
+          )
+
 -- | Output a String
 putStr :: SML (StringND --> ())
 putStr = rtrnFunc $ \s -> nf s P.>>= \s' ->
