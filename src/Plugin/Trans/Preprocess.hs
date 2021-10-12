@@ -10,26 +10,55 @@ This module simplifies functions to prepare them for the lifting phase.
 At its core, this phase simplifies pattern matching and does a few minor
 rewrites of selected expressions.
 -}
-module Plugin.Trans.Preprocess (preprocessBinding) where
+module Plugin.Trans.Preprocess (preprocessBinding, processLetPlugin) where
 
 import Data.Syb
 
 import GHC.Plugins
-import GHC.Hs.Binds
-import GHC.Hs.Extension
-import GHC.Hs.Expr
-import GHC.Hs.Pat
-import GHC.Hs.Lit
+import GHC.Hs
 import GHC.Tc.Types
 import GHC.Tc.Types.Evidence
 import GHC.Tc.Utils.Monad
 import GHC.Utils.Error
-import GHC.Parser.Annotation
+import GHC.Data.Bag
 
 import Plugin.Trans.Util
 import Plugin.Trans.Type
 import Plugin.Trans.ConstraintSolver
 import Plugin.Trans.PatternMatching
+
+-- | Sequentialize Let-Bindings purely by their order in the source code.
+processLetPlugin :: HsParsedModule -> Hsc HsParsedModule
+processLetPlugin pm@HsParsedModule { hpm_module = m } =
+  return (pm { hpm_module = everywhere (mkT sequenceLet) m })
+  where
+    sequenceLet :: HsExpr GhcPs -> HsExpr GhcPs
+    sequenceLet (HsLet _ bs e) = unLoc $ sequenceLocalBinds bs e
+    sequenceLet e              = e
+
+    sequenceLocalBinds :: HsLocalBindsLR GhcPs GhcPs
+                       -> LHsExpr GhcPs -> LHsExpr GhcPs
+    sequenceLocalBinds (HsValBinds _ (ValBinds _ bs sigs)) e =
+      foldr (mkSequenceLocalBind sigs) e (bagToList bs)
+    sequenceLocalBinds bs e = noLocA  (HsLet EpAnnNotUsed bs e)
+
+    mkSequenceLocalBind sigs (L l b) e =
+      let bs = HsValBinds EpAnnNotUsed $
+               ValBinds NoAnnSortKey (unitBag (L l b)) (getSig b sigs)
+      in noLocA (HsLet EpAnnNotUsed bs e)
+
+    getSig :: HsBindLR GhcPs GhcPs -> [LSig GhcPs] -> [LSig GhcPs]
+    getSig (FunBind _ (L _ name) _ _) = go
+      where
+        go (L l (TypeSig x names ty) : rest) =
+          let matchingNames = filter (\(L _ name') -> name == name') names
+          in if null matchingNames
+               then go rest
+               else [L l (TypeSig x matchingNames ty)]
+        go (_ : rest) = go rest
+        go []         = []
+    getSig _ = const []
+
 
 -- | Preprocess a binding before lifting, to get rid of nested pattern matching.
 -- Also removes some explicit type applications and fuses HsWrapper.

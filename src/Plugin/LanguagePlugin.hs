@@ -62,7 +62,7 @@ import Plugin.Effect.Annotation
 -- the functional-logic programming language Curry.
 languagePlugin :: Plugin
 languagePlugin = defaultPlugin
-  { parsedResultAction    = const . const addPreludeImport
+  { parsedResultAction    = const . const addPreludeImportAndLet
   , renamedResultAction   = const processImportPlugin
   , typeCheckResultAction = const . liftMonadPlugin . parseDumpOpts
   , pluginRecompile       = const (return NoForceRecompile)
@@ -70,6 +70,8 @@ languagePlugin = defaultPlugin
   , driverPlugin          = const addNoImpPreludeOpt
   }
   where
+    addPreludeImportAndLet x = addPreludeImport x >>= processLetPlugin
+
     addNoImpPreludeOpt :: HscEnv  -> IO HscEnv
     addNoImpPreludeOpt hsc
       | ImplicitPrelude `xopt` dflags =

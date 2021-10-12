@@ -20,6 +20,7 @@ plugin0b =
   where
     r = ref ""
 
+infixl 0 >>:
 plugin1 :: ()
 plugin1 =
   ( let m = readMail
@@ -27,11 +28,24 @@ plugin1 =
     in ()
   )
     >>: ( let p = downloadResource "Some Resource"
-          in let m = readRef r
+              m = readRef r
           in sendMail $ p ++ m
         )
   where
     r = ref ""
+
+-- readMail .$ \m -> writeRef r ...
+
+plugin4 :: ()
+plugin4 =
+  let r = ref ""
+      _ = let m = readMail
+          in
+          writeRef r (m ++ "")
+  in
+  let p = downloadResource "Some Resource"
+  in let m = readRef r
+     in sendMail $ p ++ m
 
 plugin2 :: String
 plugin2 =
