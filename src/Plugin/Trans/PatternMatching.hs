@@ -220,7 +220,14 @@ compileLet (HsValBinds _ (XValBindsLR (NValBinds bs _))) = do
   (bs', vss, strictVs) <- unzip3 <$> mapM compileValBs bs
   return (bs', concat vss, concat strictVs)
   where
+    compileValBs :: (RecFlag, LHsBinds GhcTc)
+                 -> TcM ((RecFlag, LHsBinds GhcTc), [Located Var], [Located Var])
     compileValBs (f, bs') = do
+      when (f == Recursive) $ do
+        let srcSpan =
+              foldr (combineSrcSpans . getLocA) noSrcSpan (bagToList bs')
+        reportWarning NoReason (mkMsgEnvelope srcSpan neverQualify
+          "Effects in recursive local bindings might behave differently w.r.t calling conventions than expected")
       (bss, vss, strictVs) <- unzip3 <$> mapM compileLetBind (bagToList bs')
       return ((f, listToBag (concat bss)), concat vss, concat strictVs)
 compileLet (HsIPBinds _ _) = do
