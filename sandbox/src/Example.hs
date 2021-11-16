@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fplugin Plugin.SMLPlugin #-}
+{-# LANGUAGE GeneralisedNewtypeDeriving, DerivingStrategies #-}
 module Example where
 
 data TestFun = TestFun (Bool -> Bool)
@@ -49,3 +50,9 @@ playerNames num =
   , let _ = putStrLn $ "Enter name for player " ++ show i ++ ":"
   , let name = getLine
   ]
+
+newtype Age = Age Int
+  deriving newtype Show
+
+testNewtypeDeriving :: String
+testNewtypeDeriving = show (Age 10)
