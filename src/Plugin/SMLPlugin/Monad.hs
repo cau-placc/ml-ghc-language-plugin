@@ -29,7 +29,7 @@ module Plugin.SMLPlugin.Monad
   , SMLTag(..)
   , liftSML1, liftSML2
   , app, apply2, apply2Unlifted, apply3
-  , bind, rtrn, rtrnFunc, fmp, shre, shreTopLevel, seqValue
+  , bind, sequence, rtrn, rtrnFunc, fmp, shre, shreTopLevel, seqValue
   , rtrnFuncUnsafePoly, appUnsafePoly )
   where
 
@@ -39,6 +39,7 @@ import Control.Exception
 import Data.IORef
 import Data.Typeable
 import Unsafe.Coerce
+import Prelude hiding (sequence)
 
 import Plugin.Effect.Classes
 import Plugin.Effect.Transformers
@@ -57,6 +58,10 @@ pattern Strict x = SML (StrictT x)
 {-# INLINE[0] bind #-}
 bind :: SML a -> (a -> SML b) -> SML b
 bind = (>>=)
+
+{-# INLINE[0] sequence #-}
+sequence :: SML a -> SML b -> SML b
+sequence = (*>)
 
 {-# INLINE[0] rtrn #-}
 rtrn :: a -> SML a
