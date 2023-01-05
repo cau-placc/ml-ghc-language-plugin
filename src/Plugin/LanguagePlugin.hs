@@ -4,7 +4,7 @@
 {-|
 Module      : Plugin.CurryPlugin
 Description : A GHC plugin to transform GHC into a Curry-Compiler.
-Copyright   : (c) Kai-Oliver Prott (2020)
+Copyright   : (c) Kai-Oliver Prott (2020 - 2023)
 Maintainer  : kai.prott@hotmail.de
 
 This module contains a GHC plugin that turns GHC into a "compiler" for
@@ -94,7 +94,7 @@ languagePlugin = defaultPlugin
       prel <- mkModuleName <$> lookupConfig preludeModConfigStr
       let prelIm = noLocA (ImportDecl EpAnnNotUsed NoSourceText (noLocA prel)
                       Nothing NotBoot False NotQualified True Nothing Nothing)
-      if implicitOpt `elem` (pluginModNameOpts flgs)
+      if implicitOpt `elem` pluginModNameOpts flgs
            || any (isCurryPrelImport prel) im
         then return p
         else return (p { hpm_module = L l (m { hsmodImports = prelIm:im }) })
@@ -141,8 +141,8 @@ liftMonadPlugin mdopts env = setGblEnv env $ do
         hsc' = hsc { hsc_dflags = flags' }
         env' = env { tcg_binds = everywhere (mkT rmNondetVar) (tcg_binds env)}
         rmNondetVar :: HsExpr GhcTc -> HsExpr GhcTc
-        rmNondetVar (HsVar x (L l v)) = (HsVar x (L l (setVarType v
-          (everywhere (mkT rmNondet) (varType v)))))
+        rmNondetVar (HsVar x (L l v)) = HsVar x (L l (setVarType v
+          (everywhere (mkT rmNondet) (varType v))))
         rmNondetVar e = e
         rmNondet (TyConApp tc [inner])
           | mtycon == tc = inner
@@ -298,7 +298,7 @@ liftMonadPlugin mdopts env = setGblEnv env $ do
               setGblEnv env4 $ do
 
                 -- finally do the monadic lifting for functions and dicts
-                tcg_binds' <- liftBindings tyconsMap newInsts prep
+                tcg_binds' <- liftBindings tyconsMap (zip newInsts origInsts) prep
 
                 tcg_rules' <- mapM (liftRule tyconsMap) (tcg_rules env4)
 
@@ -316,7 +316,7 @@ liftMonadPlugin mdopts env = setGblEnv env $ do
 
                 return finalEnv
   where
-    liftBindings :: TyConMap -> [ClsInst] -> [LHsBindLR GhcTc GhcTc]
+    liftBindings :: TyConMap -> [(ClsInst, ClsInst)] -> [LHsBindLR GhcTc GhcTc]
                  -> TcM [LHsBindLR GhcTc GhcTc]
     liftBindings y z = fmap (map noLocA) .
       concatMapM (fmap fst . liftMonadicBinding False False [] y z . unLoc)

@@ -4,9 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE ExistentialQuantification  #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE DeriveAnyClass             #-}
-{-# LANGUAGE DerivingStrategies         #-}
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE PatternSynonyms            #-}
 {-# LANGUAGE DerivingVia                #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
@@ -123,7 +121,7 @@ runEffect :: MonadIO io => SML a -> io a
 runEffect (SML a) = liftIO $ runTopSharingT (runStrictT a)
 
 runEffectNF :: (Normalform SML a b, MonadIO io) => SML a -> io b
-runEffectNF a = runEffect (nf a)
+runEffectNF a = runEffect (a >>= nf)
 
 ref :: Shareable SML a => SML (a --> IORef a)
 ref = rtrnFunc $ \(SML a) -> SML (
@@ -181,11 +179,8 @@ instance (Sharing m) => Shareable m (a --> b) where
 
 instance (Normalform SML a1 a2, Normalform SML b1 b2)
   => Normalform SML (a1 --> b1) (a2 -> b2) where
-    nf    mf =
-      mf >> return (error "Plugin Error: Cannot capture function types")
-    liftE mf = do
-      f <- mf
-      return (Func (liftE . fmap f . nf))
+    nf _ = return (error "Plugin Error: Cannot capture function types")
+    embed f = Func (\mx -> embed @SML . f <$> (mx >>= nf))
 
 -- | Lift a unary function with the lifting scheme of the plugin.
 liftSML1 :: (a -> b) -> SML (a --> b)

@@ -6,8 +6,7 @@ such that the GHC can be used to compile strict Standard ML-style programs.
 
 ## Compatibility
 
-This plugin only works with a specific GHC 9.1 [commit](https://gitlab.haskell.org/ghc/ghc/-/commit/1370eda7a53f5dfc88afe705b2ffecb1d5544ec7) and cannot be used with other versions. It will be updated to 9.2, as soon as that GHC is released. 
-There is a [docker image](https://hub.docker.com/repository/docker/anonymousplugin/ghc-language-plugin) with the pre-built plugins and the specific GHC.
+This plugin only works with GHC 9.2 and cannot be used with other versions.
 
 ## Using the plugin
 The plugin can be activated within a module by adding both

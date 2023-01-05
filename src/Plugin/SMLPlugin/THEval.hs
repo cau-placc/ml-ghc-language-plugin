@@ -1,6 +1,8 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TupleSections   #-}
-{-# LANGUAGE LambdaCase      #-}
+{-# LANGUAGE TemplateHaskellQuotes #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-|
 Module      : Plugin.SMLPlugin.THEval
 Description : TemplateHaskell functions to generate wrappers.
@@ -87,12 +89,15 @@ genEval fname args = do
     genHelp :: [(Name, Type)] -> Q Exp
     genHelp []           = error "cannot happen"
     genHelp [(v,_)]      = do
-      ex <- [| \vv vx -> vx (liftE (return vv)) |]
+      ex <- [| \vv vx -> vx (return (embedAsSML vv)) |]
       return (AppE ex (VarE v))
     genHelp ((v,_):rest) = do
-      ex <- [| \inn vv vx -> vx (liftE (return vv)) >>= \(Func f') -> inn f' |]
+      ex <- [| \inn vv vx -> vx (return (embedAsSML vv)) >>= \(Func f') -> inn f' |]
       inner <- genHelp rest
       return (foldl AppE ex [inner, VarE v])
+
+embedAsSML :: Normalform SML a b => b -> a
+embedAsSML = embed @SML
 
 -- | Name of the monad 'SML' used in the lifting.
 ndName :: Name
